@@ -592,7 +592,9 @@ export class LevelBuilder {
       }
       if (b.minX === Infinity) b = { minX: -10, minZ: -10, maxX: 10, maxZ: 10 };
     }
-    level.nav = new NavGrid(this.physics, b, { cell: 0.5, radius: 0.35 });
+    // 0.25 m cells with a 0.25 m clearance so 1 m framed doorways (≈0.82 m
+    // clear) always contain walkable cell centres. Levels without enemies skip it.
+    if (level.enemySpecs.length || level.def.nav) level.nav = new NavGrid(this.physics, b, { cell: 0.25, radius: 0.25 });
     return level;
   }
 }

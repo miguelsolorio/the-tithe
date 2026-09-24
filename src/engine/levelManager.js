@@ -120,6 +120,9 @@ export class LevelManager {
       g.sun.position.set(...(sun.dir || [30, 20, -40]));
     }
     g.renderer.toneMappingExposure = env.exposure ?? 1.0;
+    // Nothing past the fog is visible: pull the far plane in so distant chunks are culled.
+    g.camera.far = Math.max(30, Math.min(220, env.far ?? 3.4 / fog.density));
+    g.camera.updateProjectionMatrix();
     const grade = env.grade || { color: 0xffffff, amount: 0 };
     g.fx.setGrade(grade.color, grade.amount);
     g.weapons.hemi.color.set(a.sky);

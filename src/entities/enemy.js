@@ -116,6 +116,11 @@ export class Enemy {
   setState(s) {
     if (this.state === s) return;
     const prev = this.state;
+    // Starting a hunt (woken by a flag, a noise or damage): it knows where you are.
+    if ((s === 'chase' || s === 'rise' || s === 'lunge') && !['chase', 'attack', 'hurt', 'lunge', 'search', 'rise'].includes(prev)) {
+      this.lastSeen.copy(this.game.player.position);
+      this.lostTimer = 0;
+    }
     this.state = s;
     this.stateTime = 0;
     this.onState?.(s, prev);
@@ -194,6 +199,10 @@ export class Enemy {
     }
     const g = this.game;
     const p = g.player;
+    // Far away and asleep: skip the work and don't draw it (the fog hides it anyway).
+    const far = this.distToPlayer() > 34;
+    this.root.visible = !far;
+    if (far && ['idle', 'pray', 'sniff', 'dormant', 'seated'].includes(this.state)) return;
     this.seesPlayer = this.perceive();
     if (this.seesPlayer) {
       this.lastSeen.copy(p.position);
@@ -310,8 +319,9 @@ export class Enemy {
     if (!direct && level.nav) {
       this.pathTimer -= dt;
       if (!this.path || this.pathTimer <= 0) {
-        this.path = level.nav.findPath(this.pos, target, 4000);
-        this.pathTimer = 0.5 + Math.random() * 0.3;
+        this.path = level.nav.findPath(this.pos, target, 9000);
+        // Unreachable (a shut door): don't burn a search every half second.
+        this.pathTimer = this.path ? 0.5 + Math.random() * 0.3 : 2.5 + Math.random();
       }
       if (this.path && this.path.length) {
         while (this.path.length > 1 && Math.hypot(this.path[0].x - this.pos.x, this.path[0].z - this.pos.z) < 0.5) this.path.shift();
