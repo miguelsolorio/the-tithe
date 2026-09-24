@@ -200,7 +200,9 @@ export class Weapons {
     const bx = Math.cos(p.bob) * 0.012 * bob;
     const by = Math.abs(Math.sin(p.bob)) * 0.014 * bob;
     const breathe = Math.sin(g.time * 1.6) * 0.004;
-    m.position.set(hold.pos[0] + bx + this.swayX, hold.pos[1] - by + breathe - this.lower * 0.45 + this.swayY, hold.pos[2] + this.kick * 0.08);
+    // Pull the weapon toward centre in narrow windows so it stays on screen.
+    const ax = Math.min(1, this.camera.aspect / 1.5);
+    m.position.set(hold.pos[0] * ax + bx + this.swayX, hold.pos[1] - by + breathe - this.lower * 0.45 + this.swayY, hold.pos[2] + this.kick * 0.08);
     m.rotation.set(hold.rot[0] + this.kick * 0.35 - this.lower * 0.6, hold.rot[1], hold.rot[2]);
     inner.position.set(0, 0, 0);
     inner.rotation.set(0, 0, 0);

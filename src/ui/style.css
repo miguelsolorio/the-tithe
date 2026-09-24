@@ -90,7 +90,7 @@ body {
 #subtitle {
   position: absolute;
   left: 50%;
-  bottom: 13%;
+  bottom: 22%;
   transform: translateX(-50%);
   max-width: min(760px, 86vw);
   text-align: center;
@@ -134,11 +134,13 @@ body {
   opacity: 1;
 }
 
+/* Bottom centre: health bar, with the weapon and ammo stacked above it. */
 #health {
   position: absolute;
-  left: 28px;
-  bottom: 28px;
-  width: 220px;
+  left: 50%;
+  bottom: 26px;
+  width: min(280px, 60vw);
+  transform: translateX(-50%);
 }
 
 #health .bar {
@@ -169,9 +171,11 @@ body {
 
 #ammo {
   position: absolute;
-  right: 30px;
-  bottom: 24px;
-  text-align: right;
+  left: 50%;
+  bottom: 42px;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
   text-shadow: 0 1px 4px #000;
 }
 
