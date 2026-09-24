@@ -44,9 +44,9 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 - [x] Integrate, load-test, commit
 
 ### Milestone 5: boss and ending
-- [~] The heart: the Mother Below (lash, spit, summon, slam), heartbeat tied to her health (subagent, Opus; stops itself at 94% usage)
+- [x] The heart: the Mother Below (lash, slam, spit, summon, three phases), heartbeat tied to her health, cut your sister free (subagent, Opus; `f8d554e`)
 - [x] Sister follower, flood variants of the house, dawn field ending
-- [ ] Full escape run, commit
+- [ ] Full escape run heart → caves → cistern → basement → ground → dawn field, commit (after the 5:10 pm PT usage reset)
 
 ### HUD
 - [x] Health bar bottom centre, weapon and ammo centred above it (`2bca63e`)
