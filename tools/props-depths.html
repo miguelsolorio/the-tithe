@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Props: depths + items</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #050505;
+        color: #ccc;
+        font: 12px/1.4 system-ui, sans-serif;
+        overflow: hidden;
+      }
+      #ui {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        width: 250px;
+        max-height: calc(100% - 16px);
+        overflow: auto;
+        background: rgba(0, 0, 0, 0.72);
+        padding: 8px 10px;
+        border: 1px solid #333;
+        border-radius: 4px;
+        z-index: 2;
+      }
+      #ui h3 {
+        margin: 8px 0 4px;
+        font-size: 12px;
+        color: #9cc;
+      }
+      #ui label {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin: 2px 0;
+      }
+      #ui input[type='range'] {
+        flex: 1;
+      }
+      #ui select,
+      #ui button {
+        background: #151515;
+        color: #ccc;
+        border: 1px solid #444;
+        padding: 2px 4px;
+      }
+      #stats {
+        color: #8a8;
+        margin-top: 6px;
+      }
+      .lbl {
+        color: #ddd;
+        font-size: 11px;
+        background: rgba(0, 0, 0, 0.55);
+        padding: 1px 4px;
+        border-radius: 2px;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+      .lbl small {
+        color: #8a8;
+      }
+      #hint {
+        position: fixed;
+        bottom: 8px;
+        right: 10px;
+        color: #777;
+        z-index: 2;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="ui"></div>
+    <div id="hint">drag: orbit / look · wheel: zoom · F: flashlight</div>
+    <script type="module" src="./props-depths.js"></script>
+  </body>
+</html>

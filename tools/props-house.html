@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>House Props</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #050404; overflow: hidden; font: 12px ui-monospace, Menlo, monospace; color: #cbbd9e; }
+      #ui { position: fixed; top: 8px; left: 8px; z-index: 2; background: rgba(10, 8, 6, 0.8); padding: 8px 10px; border: 1px solid #3a2f22; border-radius: 4px; line-height: 1.7; }
+      #ui select, #ui input { font: inherit; }
+      #stats { position: fixed; bottom: 8px; left: 8px; z-index: 2; color: #8a7c62; }
+      .lbl { color: #d8ccb0; background: rgba(0, 0, 0, 0.55); padding: 1px 5px; border-radius: 3px; white-space: nowrap; font-size: 11px; }
+      .lbl b { color: #e0a060; font-weight: normal; }
+    </style>
+  </head>
+  <body>
+    <div id="ui">
+      <select id="focus"><option value="">overview</option></select>
+      <label><input type="checkbox" id="helpers" checked /> colliders + lights</label>
+      <label><input type="checkbox" id="labels" checked /> labels</label>
+      <label><input type="checkbox" id="torch" checked /> flashlight</label>
+      <label><input type="checkbox" id="tip" /> knock over</label><br />
+      ambient <input type="range" id="amb" min="0" max="3" step="0.05" value="1" />
+      lights <input type="range" id="lmul" min="0" max="4" step="0.05" value="1" />
+    </div>
+    <div id="stats"></div>
+    <script type="module" src="./props-house.js"></script>
+  </body>
+</html>

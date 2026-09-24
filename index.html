@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Tithe</title>
+    <link rel="stylesheet" href="/src/ui/style.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="hud" class="hidden">
+      <div id="items"></div>
+      <div id="crosshair"></div>
+      <div id="prompt"></div>
+      <div id="subtitle"></div>
+      <div id="notice"></div>
+      <div id="health"><div class="bar"><i></i></div></div>
+      <div id="ammo"><span class="label"></span><span class="count"></span></div>
+      <div id="boss" class="hidden"><span class="name"></span><div class="bar"><i></i></div></div>
+      <div id="fps" class="hidden"></div>
+    </div>
+
+    <div id="screen-title" class="screen">
+      <div class="screen-inner">
+        <h1>The Tithe</h1>
+        <p class="tagline">A year after your sister vanished, her phone pinged from a field at the edge of the county. At dusk you drive out to find it.</p>
+        <div class="buttons">
+          <button id="btn-start">Begin</button>
+          <button id="btn-continue" class="secondary hidden">Continue</button>
+        </div>
+        <div class="controls">
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</div>
+          <div><kbd>Mouse</kbd> look</div>
+          <div><kbd>Shift</kbd> sprint</div>
+          <div><kbd>F</kbd> flashlight</div>
+          <div><kbd>E</kbd> interact</div>
+          <div><kbd>Click</kbd> attack</div>
+          <div><kbd>R</kbd> reload</div>
+          <div><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> weapons</div>
+          <div><kbd>Esc</kbd> pause</div>
+        </div>
+        <p class="hint">Headphones recommended.</p>
+      </div>
+    </div>
+
+    <div id="screen-pause" class="screen hidden">
+      <div class="screen-inner">
+        <h2>Paused</h2>
+        <div class="buttons">
+          <button id="btn-resume">Resume</button>
+          <button id="btn-checkpoint" class="secondary">Restart from checkpoint</button>
+          <button id="btn-quit" class="secondary">Quit to title</button>
+        </div>
+        <label class="setting">Mouse sensitivity <input id="sens" type="range" min="0.3" max="2.5" step="0.05" value="1" /></label>
+        <label class="setting">Volume <input id="vol" type="range" min="0" max="1" step="0.05" value="0.9" /></label>
+      </div>
+    </div>
+
+    <div id="screen-dead" class="screen hidden">
+      <div class="screen-inner">
+        <h2 class="blood">The house keeps you</h2>
+        <p id="death-text" class="tagline"></p>
+        <div class="buttons">
+          <button id="btn-retry">Try again</button>
+          <button id="btn-dead-quit" class="secondary">Quit to title</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-end" class="screen hidden">
+      <div class="screen-inner">
+        <h2>Dawn</h2>
+        <p id="end-text" class="tagline"></p>
+        <p id="end-stats" class="hint"></p>
+        <div class="buttons">
+          <button id="btn-again">Play again</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="loading" class="hidden">…</div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

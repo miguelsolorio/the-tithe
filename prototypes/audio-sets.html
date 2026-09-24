@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Tithe: audio sets</title>
+    <!--
+      Audition page for The Tithe's five audio directions. Everything is
+      synthesized with the Web Audio API; there are no audio files.
+
+      Chosen direction (docs/audio-direction.md): mix by depth.
+        Upper floors  -> Liturgy
+        Basement      -> Undertow
+        Flesh caves   -> Viscera
+        Encounters    -> Dread strings layer (plus the bulb flicker from Dead channel)
+
+      When porting into src/systems/audio.js, the helpers below map onto the old
+      engine's building blocks (git show dc8b10c:src/systems/audio.js):
+        nb -> _noiseBuffer, imp -> _impulse, cv -> _curve, out -> _out, env -> _env
+    -->
+    <style>
+      :root {
+        --bg: #0b0708;
+        --surface: #151012;
+        --border: #2e2427;
+        --border-strong: #4a3a3e;
+        --text: #ece4dc;
+        --text-secondary: #a8998f;
+        --accent-bg: #3a060a;
+        --accent-text: #f0b4b4;
+        --accent-border: #7a0f16;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+      main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+      h1 { font-size: 22px; font-weight: 500; margin: 0 0 4px; }
+      .lede { color: var(--text-secondary); margin: 0 0 24px; }
+      .controls { display: flex; align-items: center; gap: 12px; margin: 0 0 20px; }
+      .controls label { color: var(--text-secondary); font-size: 14px; }
+      .controls input { flex: 1; accent-color: #c0303a; }
+      #volOut { min-width: 40px; font-weight: 500; }
+      .set {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin: 0 0 12px;
+        background: var(--surface);
+      }
+      .set h2 { margin: 0; font-size: 16px; font-weight: 500; display: flex; gap: 8px; align-items: center; }
+      .set p { margin: 2px 0 0; font-size: 13px; color: var(--text-secondary); }
+      .tag {
+        font-size: 12px;
+        font-weight: 400;
+        padding: 2px 8px;
+        border-radius: 6px;
+        background: var(--accent-bg);
+        color: var(--accent-text);
+      }
+      .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      .sep { width: 1px; background: var(--border); margin: 0 4px; }
+      button {
+        font: inherit;
+        font-size: 13px;
+        color: var(--text);
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+      button:hover { background: #211a1c; }
+      button:active { transform: scale(0.98); }
+      button.on { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-border); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>The Tithe: audio sets</h1>
+      <p class="lede">Five synthesized directions. The game mixes them by depth; tags show where each one is used.</p>
+
+      <div class="controls">
+        <label for="vol">Volume</label>
+        <input id="vol" type="range" min="0" max="100" step="1" value="70" />
+        <span id="volOut">70%</span>
+        <button id="stopAll">Stop all</button>
+      </div>
+
+      <section class="set">
+        <h2>1. Liturgy <span class="tag">Upper floors</span></h2>
+        <p>Organ drones, monk chant, tolling bells. Sacred turned demonic.</p>
+        <div class="row">
+          <button data-music="liturgy">Play music</button><span class="sep"></span>
+          <button data-sfx="bell">Bell toll</button>
+          <button data-sfx="chant">Cult chant</button>
+          <button data-sfx="acolyte">Acolyte scream</button>
+          <button data-sfx="revolver">Revolver in chapel</button>
+          <button data-sfx="ignite">Sigil ignites</button>
+        </div>
+      </section>
+
+      <section class="set">
+        <h2>2. Undertow <span class="tag">Basement and cistern</span></h2>
+        <p>Submerged drones, drips, whale-like groans. Cold and pressurized.</p>
+        <div class="row">
+          <button data-music="undertow">Play music</button><span class="sep"></span>
+          <button data-sfx="drip">Drip</button>
+          <button data-sfx="splash">Wading</button>
+          <button data-sfx="gurgle">Drowned gurgle</button>
+          <button data-sfx="lamprey">Lamprey shriek</button>
+          <button data-sfx="boom">Shotgun, submerged</button>
+        </div>
+      </section>
+
+      <section class="set">
+        <h2>3. Viscera <span class="tag">Flesh caves</span></h2>
+        <p>A heartbeat you live inside. Breathing walls, wet bass pulse.</p>
+        <div class="row">
+          <button data-music="viscera">Play music</button><span class="sep"></span>
+          <button data-sfx="squelch">Squelch</button>
+          <button data-sfx="crack">Bone crack</button>
+          <button data-sfx="skinless">Skinless scream</button>
+          <button data-sfx="chomp">Wall maw chomp</button>
+          <button data-sfx="snarl">Hound snarl</button>
+        </div>
+      </section>
+
+      <section class="set">
+        <h2>4. Dead channel <span class="tag">Bulb flicker only</span></h2>
+        <p>Warped music box, tape hiss, radio static. Lo-fi dread.</p>
+        <div class="row">
+          <button data-music="channel">Play music</button><span class="sep"></span>
+          <button data-sfx="static">Static burst</button>
+          <button data-sfx="flicker">Bulb flicker</button>
+          <button data-sfx="whisper">Radio whisper</button>
+          <button data-sfx="tape">Tape stop</button>
+          <button data-sfx="scare">Jump scare</button>
+        </div>
+      </section>
+
+      <section class="set">
+        <h2>5. Dread strings <span class="tag">Encounter layer</span></h2>
+        <p>Dissonant string clusters, endless riser, braams. Cinematic tension.</p>
+        <div class="row">
+          <button data-music="strings">Play music</button><span class="sep"></span>
+          <button data-sfx="braam">Braam</button>
+          <button data-sfx="screech">Violin screech</button>
+          <button data-sfx="rush">Heartbeat rush</button>
+          <button data-sfx="creak">Door creak</button>
+          <button data-sfx="stinger">Stinger</button>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const R = (a, b) => a + (b - a) * Math.random();
+      let ctx, comp, master, verb, white, brown, curve;
+
+      // Vowel formants (F1, F2, F3) for chant, screams and whispers.
+      const V = {
+        a: [800, 1150, 2900],
+        o: [450, 800, 2830],
+        e: [400, 1600, 2700],
+        u: [325, 700, 2530],
+        i: [270, 2140, 2950],
+      };
+
+      const volEl = document.getElementById('vol');
+      const volOut = document.getElementById('volOut');
+
+      // ---------- Engine ----------
+      function init() {
+        if (ctx) {
+          ctx.resume();
+          return;
+        }
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        master = G(volEl.value / 100);
+        master.connect(ctx.destination);
+        // Limiter so stacked stingers don't clip.
+        comp = ctx.createDynamicsCompressor();
+        comp.threshold.value = -16;
+        comp.ratio.value = 8;
+        comp.connect(master);
+        verb = ctx.createConvolver();
+        verb.buffer = imp(3.8, 2.4);
+        const vg = G(0.8);
+        verb.connect(vg);
+        vg.connect(comp);
+        white = nb(false, 3);
+        brown = nb(true, 6);
+        curve = cv(30);
+      }
+
+      function nb(isBrown, seconds) {
+        const n = (ctx.sampleRate * seconds) | 0;
+        const b = ctx.createBuffer(1, n, ctx.sampleRate);
+        const d = b.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < n; i++) {
+          const w = Math.random() * 2 - 1;
+          if (isBrown) {
+            last = (last + 0.02 * w) / 1.02;
+            d[i] = last * 3.5;
+          } else d[i] = w;
+        }
+        return b;
+      }
+
+      function imp(seconds, decay) {
+        const n = (ctx.sampleRate * seconds) | 0;
+        const b = ctx.createBuffer(2, n, ctx.sampleRate);
+        for (let c = 0; c < 2; c++) {
+          const d = b.getChannelData(c);
+          for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, decay);
+        }
+        return b;
+      }
+
+      function cv(k) {
+        const c = new Float32Array(1024);
+        for (let i = 0; i < 1024; i++) {
+          const x = i / 512 - 1;
+          c[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
+        }
+        return c;
+      }
+
+      // ---------- Node shorthands ----------
+      function O(type, f) {
+        const o = ctx.createOscillator();
+        o.type = type;
+        o.frequency.value = f;
+        return o;
+      }
+      function F(type, f, q = 1) {
+        const x = ctx.createBiquadFilter();
+        x.type = type;
+        x.frequency.value = f;
+        x.Q.value = q;
+        return x;
+      }
+      function G(v = 1) {
+        const g = ctx.createGain();
+        g.gain.value = v;
+        return g;
+      }
+      function N(buffer) {
+        const s = ctx.createBufferSource();
+        s.buffer = buffer;
+        s.loop = true;
+        return s;
+      }
+      function Dz() {
+        const w = ctx.createWaveShaper();
+        w.curve = curve;
+        return w;
+      }
+      function chain(...nodes) {
+        for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1]);
+        return nodes[nodes.length - 1];
+      }
+      function play(src, t, dur) {
+        src.start(t);
+        src.stop(t + dur);
+      }
+      const now = () => ctx.currentTime;
+
+      // Output for a one-shot: dry to dest, plus a reverb send. Cleaned up after `life` seconds.
+      function out(wet, gain, dest, life = 10) {
+        const o = G(gain);
+        o.connect(dest || comp);
+        const s = G(wet);
+        o.connect(s);
+        s.connect(verb);
+        setTimeout(() => {
+          o.disconnect();
+          s.disconnect();
+        }, life * 1000);
+        return o;
+      }
+
+      function env(p, t, attack, peak, release, hold = 0) {
+        const v = Math.max(peak, 0.0002);
+        p.cancelScheduledValues(t);
+        p.setValueAtTime(0.0001, t);
+        p.exponentialRampToValueAtTime(v, t + attack);
+        p.setValueAtTime(v, t + attack + hold);
+        p.exponentialRampToValueAtTime(0.0001, t + attack + hold + release);
+      }
+
+      function lfo(rate, depth, param, type = 'sine') {
+        const o = O(type, rate);
+        const g = G(depth);
+        o.connect(g);
+        g.connect(param);
+        o.start();
+        return o;
+      }
+
+      // Three parallel bandpasses at vowel formants; returns the filters so vowels can morph.
+      function formant(src, dest, v) {
+        const t = now();
+        return v.map((f, i) => {
+          const b = F('bandpass', f, [8, 10, 12][i]);
+          b.frequency.setValueAtTime(f, t);
+          src.connect(b);
+          const g = G([1, 0.55, 0.3][i] * 3);
+          b.connect(g);
+          g.connect(dest);
+          return b;
+        });
+      }
+      function vowel(filters, v, t) {
+        filters.forEach((b, i) => b.frequency.linearRampToValueAtTime(v[i], t));
+      }
+
+      // Filtered noise burst with an envelope; returns the filter for extra automation.
+      function nz(dest, buffer, type, f, q, t, attack, peak, release, hold = 0) {
+        const n = N(buffer);
+        const x = F(type, f, q);
+        const e = G(0);
+        chain(n, x, e, dest);
+        env(e.gain, t, attack, peak, release, hold);
+        n.start(t, Math.random());
+        n.stop(t + attack + hold + release + 0.05);
+        return x;
+      }
+
+      // Oscillator with an envelope and optional exponential glide to f2.
+      function tone(dest, type, f, t, attack, peak, release, hold = 0, f2, glide) {
+        const s = O(type, f);
+        const e = G(0);
+        chain(s, e, dest);
+        if (f2) {
+          s.frequency.setValueAtTime(f, t);
+          s.frequency.exponentialRampToValueAtTime(f2, t + (glide || attack + hold + release));
+        }
+        env(e.gain, t, attack, peak, release, hold);
+        play(s, t, attack + hold + release + 0.05);
+        return s;
+      }
+
+      // ---------- Liturgy ----------
+      function bell(d, f = 73.42, g = 0.5) {
+        const t = now();
+        const o = out(0.6, g, d, 12);
+        // [partial ratio, amplitude, decay] — inharmonic, like a cast bell.
+        [
+          [0.5, 1, 7], [1, 0.8, 6], [1.19, 0.5, 4], [1.56, 0.35, 3.5],
+          [2, 0.4, 3], [2.51, 0.25, 2.2], [3.01, 0.2, 1.8], [4.1, 0.12, 1.2],
+        ].forEach(([r, a, dc]) => tone(o, 'sine', f * r * 2, t, 0.004, a * 0.3, dc));
+      }
+
+      function chant(d, base = 98, dur = 3.4, g = 0.5) {
+        const t = now();
+        const o = out(0.7, g, d, dur + 6);
+        const e = G(0);
+        e.connect(o);
+        env(e.gain, t, 0.4, 1, 1, dur - 1.4);
+        const m = G(1);
+        const fs = formant(m, e, V.o);
+        'oaouao'.split('').forEach((v, i) => vowel(fs, V[v], t + 0.3 + (i * dur) / 6));
+        [1, 1.004, 1.5, 0.5, 0.998].forEach((r, i) => {
+          const s = O('sawtooth', base * r);
+          const vib = O('sine', 5 + i * 0.3);
+          const vg = G(base * r * 0.012);
+          chain(vib, vg, s.frequency);
+          s.connect(m);
+          play(s, t, dur + 0.2);
+          play(vib, t, dur + 0.2);
+        });
+      }
+
+      function scream(d, f = 520, g = 0.3, dur = 1.3, distort = true) {
+        const t = now();
+        const o = out(0.45, g, d, dur + 6);
+        const e = G(0);
+        e.connect(o);
+        env(e.gain, t, 0.04, 1, dur * 0.55, dur * 0.3);
+        const m = G(1);
+        const z = Dz();
+        m.connect(z);
+        const fs = formant(distort ? z : m, e, V.a);
+        vowel(fs, V.i, t + dur * 0.6);
+        [1, 1.013, 0.991, 1.49].forEach((r) => {
+          const s = O('sawtooth', f * r * 0.8);
+          s.frequency.setValueAtTime(f * r * 0.8, t);
+          s.frequency.exponentialRampToValueAtTime(f * r * 1.18, t + 0.14);
+          s.frequency.exponentialRampToValueAtTime(f * r * 0.55, t + dur);
+          const vib = O('sine', R(6, 8));
+          const vg = G(f * 0.035);
+          chain(vib, vg, s.frequency);
+          s.connect(m);
+          play(s, t, dur + 0.1);
+          play(vib, t, dur + 0.1);
+        });
+        nz(o, white, 'highpass', 2500, 0.7, t, 0.03, 0.15, dur * 0.8);
+      }
+
+      function shot(d, wet = 0.5, g = 0.8, lp = 6000, tail = 0.3) {
+        const t = now();
+        const o = out(wet, g, d);
+        nz(o, white, 'lowpass', lp, 0.7, t, 0.001, 1, tail);
+        tone(o, 'sine', 150, t, 0.002, 1.2, 0.28, 0, 36, 0.2);
+        nz(o, white, 'highpass', 3000, 0.7, t, 0.0005, 0.6, 0.03);
+      }
+
+      function ignite(d) {
+        const t = now();
+        const o = out(0.6, 0.6, d);
+        const x = nz(o, white, 'bandpass', 200, 2, t, 0.7, 0.6, 0.6, 0.2);
+        x.frequency.setValueAtTime(200, t);
+        x.frequency.exponentialRampToValueAtTime(3200, t + 1.1);
+        nz(o, brown, 'lowpass', 140, 1, t, 0.3, 1.2, 1.4, 0.4);
+        for (let i = 0; i < 14; i++) nz(o, white, 'highpass', 2500, 1, t + 0.4 + Math.random() * 1.4, 0.001, R(0.1, 0.4), 0.02);
+      }
+
+      // ---------- Undertow ----------
+      function drip(d, g = 0.35) {
+        const t = now();
+        const o = out(0.85, g, d);
+        const f = R(900, 1900);
+        tone(o, 'sine', f, t, 0.002, 1, 0.12, 0, f * 0.45, 0.06);
+      }
+
+      function splash(d) {
+        const t = now();
+        const o = out(0.35, 0.7, d);
+        for (let i = 0; i < 4; i++) {
+          const s = t + i * R(0.18, 0.28);
+          const x = nz(o, brown, 'bandpass', 800, 1.2, s, 0.03, R(0.6, 1), 0.35);
+          x.frequency.setValueAtTime(R(900, 1300), s);
+          x.frequency.exponentialRampToValueAtTime(300, s + 0.35);
+          nz(o, white, 'bandpass', R(2500, 4000), 2, s + 0.02, 0.01, 0.12, 0.2);
+        }
+      }
+
+      function gurgle(d) {
+        const t = now();
+        const o = out(0.5, 0.8, d);
+        const dur = 1.8;
+        const x = nz(o, brown, 'bandpass', 400, 7, t, 0.2, 1.4, 0.6, dur - 0.8);
+        for (let k = 0; k < dur / 0.05; k++) x.frequency.setValueAtTime(R(180, 750), t + k * 0.05);
+        const s = O('sawtooth', 72);
+        const am = G(0.5);
+        const e = G(0);
+        const lp = F('lowpass', 500);
+        const q = O('square', 9);
+        const qg = G(0.5);
+        chain(q, qg, am.gain);
+        chain(s, am, lp, e, o);
+        env(e.gain, t, 0.2, 0.5, 0.6, dur - 0.8);
+        s.frequency.setValueAtTime(72, t);
+        s.frequency.linearRampToValueAtTime(55, t + dur);
+        play(s, t, dur + 0.1);
+        play(q, t, dur + 0.1);
+      }
+
+      function lamprey(d) {
+        const t = now();
+        const o = out(0.5, 0.35, d);
+        const dur = 1.1;
+        const c = O('sawtooth', 1500);
+        const m = O('sine', 310);
+        const mg = G(700);
+        const bp = F('bandpass', 2200, 2.5);
+        const e = G(0);
+        const tr = O('square', 28);
+        const tg = G(0.4);
+        const am = G(0.6);
+        chain(m, mg, c.frequency);
+        chain(tr, tg, am.gain);
+        chain(c, bp, am, e, o);
+        c.frequency.setValueAtTime(1500, t);
+        c.frequency.exponentialRampToValueAtTime(650, t + dur);
+        env(e.gain, t, 0.02, 1, 0.5, dur - 0.5);
+        [c, m, tr].forEach((s) => play(s, t, dur + 0.1));
+      }
+
+      function boom(d) {
+        const t = now();
+        const o = out(0.9, 1, d, 12);
+        nz(o, brown, 'lowpass', 260, 1, t, 0.004, 1.6, 1.3);
+        tone(o, 'sine', 90, t, 0.003, 1.2, 0.9, 0, 24, 0.6);
+        nz(o, white, 'lowpass', 900, 1, t + 0.02, 0.01, 0.3, 0.25);
+      }
+
+      // ---------- Viscera ----------
+      function heart(d, g = 0.8, t = now()) {
+        const o = out(0.15, g, d);
+        tone(o, 'sine', 62, t, 0.006, 1, 0.2, 0, 30, 0.14);
+        tone(o, 'sine', 55, t + 0.28, 0.006, 0.65, 0.24, 0, 28, 0.16);
+      }
+
+      function squelch(d, g = 0.7) {
+        const t = now();
+        const o = out(0.3, g, d);
+        const x = nz(o, brown, 'lowpass', 2600, 14, t, 0.01, 1.4, 0.35);
+        x.frequency.setValueAtTime(2600, t);
+        x.frequency.exponentialRampToValueAtTime(180, t + 0.3);
+        tone(o, 'sine', 200, t, 0.01, 0.5, 0.25, 0, 60, 0.25);
+        for (let i = 0; i < 5; i++) nz(o, white, 'bandpass', R(800, 2400), 6, t + R(0, 0.3), 0.002, R(0.2, 0.5), 0.03);
+      }
+
+      function crack(d) {
+        const t = now();
+        const o = out(0.35, 0.9, d);
+        for (let i = 0; i < 6; i++) nz(o, white, 'highpass', R(1200, 2600), 1, t + R(0, 0.16), 0.0008, R(0.5, 1), R(0.01, 0.03));
+        tone(o, 'sine', 110, t, 0.002, 0.7, 0.12, 0, 50);
+      }
+
+      function chomp(d) {
+        const t = now();
+        const o = out(0.4, 1, d);
+        nz(o, brown, 'lowpass', 600, 4, t, 0.15, 0.8, 0.05);
+        tone(o, 'sine', 95, t + 0.18, 0.002, 1.3, 0.25, 0, 38, 0.2);
+        nz(o, white, 'highpass', 2000, 1, t + 0.18, 0.001, 0.8, 0.05);
+        setTimeout(() => squelch(d, 0.4), 260);
+      }
+
+      function snarl(d) {
+        const t = now();
+        const o = out(0.35, 0.7, d);
+        const dur = 1.3;
+        const s = O('sawtooth', 80);
+        const am = G(0.5);
+        const q = O('square', 32);
+        const qg = G(0.5);
+        const lp = F('lowpass', 900, 2);
+        const bp = F('bandpass', 420, 3);
+        const e = G(0);
+        chain(q, qg, am.gain);
+        chain(s, am, lp, e, o);
+        lp.connect(bp);
+        bp.connect(e);
+        s.frequency.setValueAtTime(70, t);
+        s.frequency.linearRampToValueAtTime(130, t + 0.5);
+        s.frequency.linearRampToValueAtTime(90, t + dur);
+        env(e.gain, t, 0.08, 1, 0.4, dur - 0.5);
+        play(s, t, dur + 0.1);
+        play(q, t, dur + 0.1);
+        nz(o, brown, 'bandpass', 900, 1, t, 0.1, 0.5, 0.4, dur - 0.5);
+      }
+
+      // ---------- Dead channel ----------
+      function staticBurst(d, dur = 0.6, g = 0.35) {
+        const t = now();
+        const o = out(0.15, g, d);
+        const x = F('bandpass', R(1500, 3200), 0.6);
+        const e = G(0);
+        const n = N(white);
+        chain(n, x, e, o);
+        e.gain.setValueAtTime(0, t);
+        for (let k = 0; k < dur / 0.025; k++) e.gain.setValueAtTime(Math.random() < 0.7 ? R(0.4, 1) : 0, t + k * 0.025);
+        e.gain.setValueAtTime(0, t + dur);
+        play(n, t, dur + 0.05);
+        tone(o, 'sine', R(900, 1400), t, 0.01, 0.06, 0.05, dur - 0.06);
+      }
+
+      function flicker(d) {
+        const t = now();
+        const o = out(0.2, 0.5, d);
+        const dur = 1.8;
+        const s = O('sawtooth', 120);
+        const bp = F('bandpass', 240, 2);
+        const e = G(0);
+        chain(s, bp, e, o);
+        let on = false;
+        e.gain.setValueAtTime(0, t);
+        for (let k = 0; k < dur / 0.04; k++) {
+          const v = Math.random() < 0.55;
+          if (v !== on) {
+            on = v;
+            e.gain.setValueAtTime(v ? 0.6 : 0, t + k * 0.04);
+            nz(o, white, 'highpass', 3000, 1, t + k * 0.04, 0.0005, 0.25, 0.01);
+          }
+        }
+        e.gain.setValueAtTime(0, t + dur);
+        play(s, t, dur + 0.05);
+      }
+
+      function whisper(d) {
+        const t = now();
+        const o = out(0.4, 1, d);
+        const dur = 2.2;
+        const bp = F('bandpass', 1800, 0.7);
+        const e = G(0);
+        chain(e, bp, o);
+        const n = N(white);
+        const fs = formant(n, e, V.e);
+        e.gain.setValueAtTime(0, t);
+        for (let k = 0; k < dur / 0.13; k++) {
+          const tt = t + k * 0.13;
+          e.gain.setValueAtTime(Math.random() < 0.75 ? R(0.3, 0.9) : 0, tt);
+          vowel(fs, V['aeiou'[(Math.random() * 5) | 0]], tt + 0.06);
+        }
+        e.gain.setValueAtTime(0, t + dur);
+        play(n, t, dur + 0.05);
+        staticBurst(d, dur, 0.1);
+      }
+
+      function tapeStop(d) {
+        const t = now();
+        const o = out(0.4, 0.6, d);
+        const lp = F('lowpass', 4000);
+        lp.connect(o);
+        lp.frequency.setValueAtTime(4000, t + 0.4);
+        lp.frequency.exponentialRampToValueAtTime(200, t + 1.8);
+        [440, 523.25, 659.25, 880].forEach((f) => {
+          const s = tone(lp, 'triangle', f, t, 0.004, 0.35, 1.8);
+          s.frequency.setValueAtTime(f, t + 0.4);
+          s.frequency.exponentialRampToValueAtTime(f * 0.15, t + 1.8);
+        });
+      }
+
+      function scare(d) {
+        const t = now();
+        const o = out(0.5, 0.8, d);
+        const z = Dz();
+        const e = G(0);
+        chain(z, e, o);
+        env(e.gain, t, 0.004, 1, 0.9, 0.15);
+        const n = N(white);
+        n.connect(z);
+        play(n, t, 1.1);
+        [185, 196, 261.6, 277.2, 370].forEach((f) => {
+          const s = O('sawtooth', f);
+          s.connect(z);
+          play(s, t, 1.1);
+        });
+        tone(o, 'sine', 55, t, 0.004, 1.4, 1, 0, 30);
+      }
+
+      function musicbox(d, f, t, g, wobble) {
+        const o = out(0.5, g, d);
+        [[1, 1, 1.6], [4.02, 0.25, 0.4], [2.99, 0.12, 0.6]].forEach(([r, a, dc]) => {
+          const s = O('sine', f * r);
+          const e = G(0);
+          if (wobble) wobble.connect(s.detune);
+          chain(s, e, o);
+          env(e.gain, t, 0.003, a, dc);
+          play(s, t, dc + 0.05);
+        });
+      }
+
+      // ---------- Dread strings ----------
+      function braam(d, g = 0.6) {
+        const t = now();
+        const o = out(0.6, g, d, 12);
+        const z = Dz();
+        const lp = F('lowpass', 200, 4);
+        const e = G(0);
+        chain(z, lp, e, o);
+        lp.frequency.setValueAtTime(200, t);
+        lp.frequency.exponentialRampToValueAtTime(1800, t + 0.5);
+        lp.frequency.exponentialRampToValueAtTime(300, t + 3);
+        env(e.gain, t, 0.12, 1, 1.6, 1.2);
+        [43.65, 43.9, 87.3, 51.9, 103.8].forEach((f) => {
+          const s = O('sawtooth', f);
+          s.connect(z);
+          play(s, t, 3.2);
+        });
+      }
+
+      function screech(d) {
+        const t = now();
+        const o = out(0.6, 0.28, d);
+        const bp = F('bandpass', 2400, 1.4);
+        const e = G(0);
+        chain(bp, e, o);
+        env(e.gain, t, 0.03, 1, 0.9, 0.7);
+        [1760, 1790, 1865].forEach((f) => {
+          const s = O('sawtooth', f);
+          s.frequency.setValueAtTime(f, t);
+          s.frequency.linearRampToValueAtTime(f * 1.06, t + 1.4);
+          const vib = O('sine', 9);
+          const vg = G(28);
+          chain(vib, vg, s.frequency);
+          s.connect(bp);
+          play(s, t, 1.8);
+          play(vib, t, 1.8);
+        });
+        nz(o, white, 'bandpass', 3200, 3, t, 0.03, 0.15, 0.9, 0.7);
+      }
+
+      function rush(d) {
+        let t = now();
+        for (let i = 0; i < 10; i++) {
+          heart(d, 0.4 + i * 0.07, t);
+          t += Math.max(0.34, 0.95 - i * 0.07);
+        }
+      }
+
+      // Stick-slip friction: a sawtooth whose pitch jitters every 30 ms.
+      function creak(d) {
+        const t = now();
+        const o = out(0.35, 0.7, d);
+        const dur = 1.7;
+        const s = O('sawtooth', 110);
+        const b1 = F('bandpass', 700, 4);
+        const b2 = F('bandpass', 1500, 6);
+        const e = G(0);
+        s.connect(b1);
+        s.connect(b2);
+        b1.connect(e);
+        b2.connect(e);
+        e.connect(o);
+        for (let k = 0; k < dur / 0.03; k++) s.frequency.setValueAtTime(R(70, 95) + k * 1.4, t + k * 0.03);
+        env(e.gain, t, 0.1, 1, 0.3, dur - 0.4);
+        play(s, t, dur + 0.05);
+        setTimeout(() => tone(o, 'sine', 80, now(), 0.003, 0.8, 0.3, 0, 45), dur * 1000);
+      }
+
+      function stinger(d) {
+        const t = now();
+        const o = out(0.6, 0.8, d, 12);
+        const hp = F('highpass', 1800);
+        const e = G(0);
+        const n = N(white);
+        chain(n, hp, e, o);
+        e.gain.setValueAtTime(0.0001, t);
+        e.gain.exponentialRampToValueAtTime(0.7, t + 1.4);
+        e.gain.setValueAtTime(0, t + 1.41);
+        play(n, t, 1.5);
+        setTimeout(() => {
+          braam(d, 0.5);
+          screech(d);
+        }, 1400);
+      }
+
+      function thump(d, g = 0.5) {
+        const t = now();
+        const o = out(0.5, g, d);
+        tone(o, 'sine', 70, t, 0.004, 1, 1.2, 0, 52, 0.4);
+        nz(o, brown, 'lowpass', 180, 1, t, 0.004, 0.6, 0.6);
+      }
+
+      // ---------- Music loops ----------
+      // Each receives L: { bus, add(...nodes), every(ms, fn), later(ms, fn) } so it can be stopped cleanly.
+      const MUSIC = {
+        liturgy(L) {
+          const b = L.bus;
+          // Organ: D/A/G# cluster (the G# makes a tritone against D), with tremolo.
+          const lp = F('lowpass', 1400);
+          const tr = G(1);
+          chain(tr, lp, b);
+          L.add(lfo(4.6, 0.12, tr.gain));
+          [[73.42, 0.05], [110, 0.03], [103.83, 0.025], [36.71, 0.06]].forEach(([f, g]) => {
+            const s = O('square', f);
+            const s2 = O('sine', f * 2);
+            chain(s, G(g * 0.4), tr);
+            chain(s2, G(g), tr);
+            s.start();
+            s2.start();
+            L.add(s, s2);
+          });
+          // Choir pad: sawtooth voices through slowly morphing vowel formants.
+          const ch = G(0.14);
+          ch.connect(b);
+          L.add(lfo(0.07, 0.1, ch.gain));
+          const m = G(1);
+          const fs = formant(m, ch, V.a);
+          [146.83, 174.61, 207.65, 147.7].forEach((f, i) => {
+            const s = O('sawtooth', f);
+            s.connect(m);
+            s.start();
+            L.add(s, lfo(5 + i * 0.4, f * 0.01, s.frequency));
+          });
+          L.every(4500, () => vowel(fs, V['aou'[(Math.random() * 3) | 0]], now() + 3.5));
+          bell(b, 73.42, 0.45);
+          L.every(9000, () => bell(b, 73.42, 0.45));
+          L.later(5000, () => chant(b, 98, 3.4, 0.25));
+          L.every(14000, () => chant(b, 98, 3.4, 0.25));
+        },
+
+        undertow(L) {
+          const b = L.bus;
+          // Waves: brown noise with a slowly swinging lowpass.
+          const n = N(brown);
+          const lp = F('lowpass', 350, 0.7);
+          chain(n, lp, G(0.5), b);
+          L.add(lfo(0.09, 180, lp.frequency));
+          n.start();
+          L.add(n);
+          // Sub pressure: 41 and 41.6 Hz beat against each other.
+          [41, 41.6, 55].forEach((f) => {
+            const s = O('sine', f);
+            chain(s, G(0.18), b);
+            s.start();
+            L.add(s);
+          });
+          const groan = () => {
+            const t = now();
+            const o = out(0.8, 0.12, b);
+            const s = O('sine', R(160, 260));
+            const e = G(0);
+            chain(s, F('lowpass', 600), e, o);
+            s.frequency.setValueAtTime(s.frequency.value, t);
+            s.frequency.linearRampToValueAtTime(R(90, 300), t + 2.5);
+            s.frequency.linearRampToValueAtTime(R(80, 200), t + 5);
+            const vib = O('sine', 3);
+            chain(vib, G(6), s.frequency);
+            env(e.gain, t, 1.5, 1, 3, 1);
+            play(s, t, 6);
+            play(vib, t, 6);
+          };
+          groan();
+          L.every(8000, groan);
+          const dripLoop = () => {
+            drip(b, R(0.1, 0.3));
+            L.later(R(500, 2600), dripLoop);
+          };
+          dripLoop();
+        },
+
+        viscera(L) {
+          const b = L.bus;
+          // 58 bpm heartbeat.
+          heart(b, 0.9);
+          L.every(1030, () => heart(b, 0.9));
+          // Breathing: bandpassed noise swelling in and out.
+          const n = N(brown);
+          const bp = F('bandpass', 500, 1.2);
+          const bg = G(0.25);
+          chain(n, bp, bg, b);
+          n.start();
+          L.add(n, lfo(0.22, 0.24, bg.gain), lfo(0.22, 250, bp.frequency));
+          // Wet bass pulse.
+          const s = O('sawtooth', 36.7);
+          const lp = F('lowpass', 160, 6);
+          chain(s, lp, G(0.22), b);
+          s.start();
+          L.add(s, lfo(0.97, 90, lp.frequency));
+          const sq = () => {
+            squelch(b, 0.25);
+            L.later(R(3000, 7000), sq);
+          };
+          L.later(2500, sq);
+        },
+
+        channel(L) {
+          const b = L.bus;
+          const hiss = N(white);
+          chain(hiss, F('highpass', 4000), G(0.025), b);
+          hiss.start();
+          const hum = O('sine', 60);
+          const hum2 = O('sine', 120);
+          const hg = G(0.05);
+          hum.connect(hg);
+          hum2.connect(hg);
+          hg.connect(b);
+          hum.start();
+          hum2.start();
+          // Tape wow: ±22 cents on every music box note.
+          const wow = O('sine', 0.55);
+          const wg = G(22);
+          wow.connect(wg);
+          wow.start();
+          L.add(hiss, hum, hum2, wow);
+          // A-minor lullaby as [midi note, beats].
+          const mel = [[69, 1], [72, 1], [76, 1], [74, 1], [72, 1], [71, 1], [69, 2], [64, 1], [69, 1], [72, 1], [71, 1], [68, 1], [64, 3]];
+          const mf = (m) => 440 * Math.pow(2, (m - 69) / 12);
+          let i = 0;
+          let next = now() + 0.2;
+          const schedule = () => {
+            while (next < now() + 0.5) {
+              const [m, beats] = mel[i % mel.length];
+              musicbox(b, mf(m + 12), next, 0.22, wg);
+              if (i % mel.length === 0) musicbox(b, mf(57), next, 0.14, wg);
+              next += beats * 0.42;
+              i++;
+            }
+          };
+          schedule();
+          L.every(120, schedule);
+          const st = () => {
+            staticBurst(b, R(0.15, 0.6), 0.12);
+            L.later(R(4000, 9000), st);
+          };
+          L.later(3000, st);
+        },
+
+        strings(L) {
+          const b = L.bus;
+          const lp = F('lowpass', 1600, 0.5);
+          lp.connect(b);
+          // Dissonant cluster (C, C#, F#, G, B over a low C), each note two detuned saws.
+          [130.81, 138.59, 185, 196, 246.94, 65.41].forEach((f, i) => {
+            const g = G(0.03);
+            g.connect(lp);
+            [-8, 8].forEach((dt) => {
+              const s = O('sawtooth', f);
+              s.detune.value = dt;
+              s.connect(g);
+              s.start();
+              L.add(s, lfo(4.6 + i * 0.2 + dt * 0.01, 6, s.detune));
+            });
+            L.add(lfo(0.05 + i * 0.017, 0.026, g.gain));
+          });
+          // Shepard riser: overlapping sines gliding up four octaves, faded at both ends.
+          const sh = G(0.06);
+          sh.connect(b);
+          const T = 10;
+          const layer = () => {
+            const t = now();
+            const s = O('sine', 55);
+            const e = G(0);
+            chain(s, e, sh);
+            s.frequency.setValueAtTime(55, t);
+            s.frequency.exponentialRampToValueAtTime(880, t + T * 4);
+            e.gain.setValueAtTime(0, t);
+            e.gain.linearRampToValueAtTime(1, t + T * 2);
+            e.gain.linearRampToValueAtTime(0, t + T * 4);
+            play(s, t, T * 4 + 0.1);
+            L.add(s);
+          };
+          layer();
+          L.every(T * 1000, layer);
+          thump(b);
+          L.every(4200, () => thump(b, 0.45));
+        },
+      };
+
+      const SFX = {
+        bell: (d) => bell(d, 73.42, 0.6),
+        chant: (d) => chant(d),
+        acolyte: (d) => scream(d, 480, 0.3, 1.2, false),
+        revolver: (d) => shot(d, 0.9, 0.8, 5000, 0.35),
+        ignite,
+        drip: (d) => drip(d, 0.5),
+        splash,
+        gurgle,
+        lamprey,
+        boom,
+        squelch: (d) => squelch(d),
+        crack,
+        skinless: (d) => scream(d, 720, 0.3, 1.4, true),
+        chomp,
+        snarl,
+        static: (d) => staticBurst(d, 0.8, 0.4),
+        flicker,
+        whisper,
+        tape: tapeStop,
+        scare,
+        braam: (d) => braam(d),
+        screech,
+        rush,
+        creak,
+        stinger,
+      };
+
+      // ---------- UI ----------
+      let current = null;
+      let currentBtn = null;
+
+      function startMusic(name, btn) {
+        stopMusic();
+        const bus = G(0);
+        const send = G(0.35);
+        bus.connect(comp);
+        bus.connect(send);
+        send.connect(verb);
+        bus.gain.setTargetAtTime(1, now(), 0.8);
+        const L = {
+          bus,
+          nodes: [],
+          timers: [],
+          alive: true,
+          add(...n) {
+            this.nodes.push(...n);
+          },
+          every(ms, fn) {
+            this.timers.push(setInterval(() => this.alive && fn(), ms));
+          },
+          later(ms, fn) {
+            this.timers.push(setTimeout(() => this.alive && fn(), ms));
+          },
+        };
+        MUSIC[name](L);
+        current = L;
+        currentBtn = btn;
+        btn.classList.add('on');
+        btn.textContent = 'Stop music';
+      }
+
+      function stopMusic() {
+        if (!current) return;
+        const L = current;
+        L.alive = false;
+        L.timers.forEach((id) => {
+          clearTimeout(id);
+          clearInterval(id);
+        });
+        L.bus.gain.setTargetAtTime(0, now(), 0.3);
+        setTimeout(() => {
+          L.nodes.forEach((n) => {
+            try {
+              n.stop();
+            } catch (e) {}
+          });
+          L.bus.disconnect();
+        }, 1500);
+        currentBtn.classList.remove('on');
+        currentBtn.textContent = 'Play music';
+        current = null;
+        currentBtn = null;
+      }
+
+      document.addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        if (b.id === 'stopAll') {
+          if (!ctx) return;
+          stopMusic();
+          // One-shots can't be cancelled individually, so duck the master briefly.
+          master.gain.setTargetAtTime(0, now(), 0.03);
+          setTimeout(() => master.gain.setTargetAtTime(volEl.value / 100, now(), 0.05), 600);
+          return;
+        }
+        if (b.dataset.music) {
+          init();
+          if (currentBtn === b) stopMusic();
+          else startMusic(b.dataset.music, b);
+          return;
+        }
+        if (b.dataset.sfx) {
+          init();
+          SFX[b.dataset.sfx](comp);
+        }
+      });
+
+      volEl.addEventListener('input', () => {
+        volOut.textContent = volEl.value + '%';
+        if (master) master.gain.setTargetAtTime(volEl.value / 100, now(), 0.05);
+      });
+    </script>
+  </body>
+</html>

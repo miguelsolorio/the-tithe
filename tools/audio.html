@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Tithe: audio engine test</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        background: #0b0708;
+        color: #ece4dc;
+        font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace;
+      }
+      main { max-width: 980px; margin: 0 auto; padding: 20px 16px 60px; }
+      h1 { font-size: 18px; font-weight: 500; margin: 0 0 4px; }
+      .lede { color: #a8998f; margin: 0 0 16px; font-size: 12px; }
+      .row { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; flex-wrap: wrap; }
+      section { border: 1px solid #2e2427; border-radius: 10px; padding: 12px 14px; margin: 0 0 10px; background: #151012; }
+      section h2 { margin: 0 0 8px; font-size: 13px; font-weight: 500; color: #f0b4b4; }
+      .grid { display: flex; flex-wrap: wrap; gap: 6px; }
+      button {
+        font: inherit;
+        font-size: 11px;
+        color: #ece4dc;
+        background: transparent;
+        border: 1px solid #4a3a3e;
+        border-radius: 6px;
+        padding: 5px 9px;
+        cursor: pointer;
+      }
+      button:hover { background: #211a1c; }
+      button.on { background: #3a060a; color: #f0b4b4; border-color: #7a0f16; }
+      label { color: #a8998f; font-size: 12px; }
+      input[type='range'] { accent-color: #c0303a; vertical-align: middle; }
+      #log {
+        white-space: pre-wrap;
+        max-height: 220px;
+        overflow: auto;
+        background: #0a0607;
+        border: 1px solid #2e2427;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 11px;
+        color: #a8998f;
+      }
+      .ok { color: #8fce8f; }
+      .err { color: #ff8a8a; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>The Tithe: audio engine test</h1>
+      <p class="lede">Click "Start audio" (or anywhere) once to unlock the AudioContext. One-shot buttons fire immediately; loop buttons toggle on/off.</p>
+      <div class="row">
+        <button id="start">Start audio</button>
+        <label>Volume <input id="vol" type="range" min="0" max="100" value="80" /></label>
+        <button id="selftest">Run self-test</button>
+        <span id="status"></span>
+      </div>
+      <section>
+        <h2>Zones (setZone)</h2>
+        <div class="grid" id="zones"></div>
+      </section>
+      <section>
+        <h2>Dread / boss health / underwater</h2>
+        <div class="row">
+          <label>Dread <input id="dread" type="range" min="0" max="100" value="0" /></label>
+          <label>Boss health <input id="bosshp" type="range" min="0" max="100" value="100" /></label>
+          <button id="underwater">Underwater: off</button>
+        </div>
+      </section>
+      <section>
+        <h2>Positional test (drip, left / right / behind)</h2>
+        <div class="grid" id="posTest"></div>
+      </section>
+      <section>
+        <h2>Footsteps</h2>
+        <div class="grid" id="footsteps"></div>
+      </section>
+      <section>
+        <h2>Loops (toggle)</h2>
+        <div class="grid" id="loops"></div>
+      </section>
+      <section>
+        <h2>One-shots</h2>
+        <div class="grid" id="oneshots"></div>
+      </section>
+      <section>
+        <h2>Log</h2>
+        <div id="log"></div>
+      </section>
+    </main>
+    <script type="module" src="./audio-test.js"></script>
+  </body>
+</html>

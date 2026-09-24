@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Tithe: creatures</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #000; color: #cbb; font: 12px/1.35 ui-monospace, Menlo, monospace; overflow: hidden; }
+      canvas { display: block; }
+      #ui { position: fixed; top: 8px; left: 8px; width: 250px; max-height: calc(100% - 16px); overflow: auto; background: rgba(10, 6, 6, 0.82); border: 1px solid #3a1a1a; padding: 8px; box-sizing: border-box; }
+      #ui h3 { margin: 6px 0 4px; font-size: 11px; color: #e08a2c; text-transform: uppercase; letter-spacing: 0.08em; }
+      #ui button { background: #221313; color: #dcc; border: 1px solid #4a2222; padding: 3px 6px; margin: 2px 2px 0 0; cursor: pointer; font: inherit; }
+      #ui button.on { background: #6a1a1a; border-color: #b33; color: #fff; }
+      #ui label { display: block; margin: 3px 0; }
+      #ui input[type=range] { width: 150px; vertical-align: middle; }
+      #stats { white-space: pre; color: #9a8; margin-top: 6px; }
+    </style>
+  </head>
+  <body>
+    <div id="ui">
+      <h3>Creature</h3>
+      <div id="creatures"></div>
+      <h3>State</h3>
+      <div id="states"></div>
+      <h3>Controls</h3>
+      <label>speed <input id="speed" type="range" min="0" max="10" step="0.1" value="1.4" /> <span id="speedv">1.4</span> m/s</label>
+      <label>time <input id="tscale" type="range" min="0" max="1.5" step="0.05" value="1" /> <span id="tscalev">1</span>x</label>
+      <label><input id="hits" type="checkbox" /> hit spheres</label>
+      <label><input id="move" type="checkbox" /> move while walking</label>
+      <label><input id="loop" type="checkbox" checked /> loop timed states</label>
+      <label><input id="work" type="checkbox" /> work light</label>
+      <label><input id="water" type="checkbox" /> water plane</label>
+      <button id="flash">flash</button>
+      <button id="rebuild">dispose + rebuild</button>
+      <div id="stats"></div>
+    </div>
+    <script type="module" src="./creatures.js"></script>
+  </body>
+</html>
