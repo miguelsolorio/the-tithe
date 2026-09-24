@@ -432,7 +432,8 @@ export class Enemy {
     if (this.cfg.canStagger && amount >= this.cfg.staggerDamage && this.state !== 'attack') {
       this.setState('hurt');
       this.cfg.hurtSound && g.audio.play(this.cfg.hurtSound, { pos: this.eye().clone(), gain: 0.7 });
-    } else if (['idle', 'pray', 'sniff', 'wander', 'search', 'notice', 'dormant', 'seated'].includes(this.state)) {
+    } else if (!this.cfg.static && ['idle', 'pray', 'sniff', 'wander', 'search', 'notice', 'dormant', 'seated'].includes(this.state)) {
+      // (Static things like wall maws keep their own state machine when hit.)
       this.wake?.();
       if (!['rise', 'lunge'].includes(this.state)) this.setState('chase');
       g.enemies.spotted(this);
