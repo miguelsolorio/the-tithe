@@ -7,6 +7,8 @@ import { ITEM_INFO } from '../systems/inventory.js';
 // rebuilt level remembers what was already taken (flag `took:<id>`).
 
 const MODEL = { ammo: 'ammoBox', shells: 'shells', bandage: 'bandage' };
+// Key items whose prop has a different name.
+const ITEM_MODEL = { valve: 'valveWheel' };
 const LABEL = { ammo: 'revolver rounds', shells: 'shotgun shells', bandage: 'bandage' };
 
 export class Pickups {
@@ -20,7 +22,7 @@ export class Pickups {
     if (!spec.id) console.warn('[pickups] pickup without id', spec);
     if (spec.id && g.flags.has(`took:${spec.id}`)) return null;
     const pos = Array.isArray(spec.pos) ? new THREE.Vector3(...spec.pos) : spec.pos.clone();
-    const name = spec.kind === 'item' ? spec.item : MODEL[spec.kind];
+    const name = spec.kind === 'item' ? ITEM_MODEL[spec.item] || spec.item : MODEL[spec.kind];
     const obj = PROP_NAMES.includes(name) ? makeProp(name, spec.args || {}) : fallback(spec.kind);
     // Weapons are authored grip-at-origin pointing -Z; lay them on their side.
     if (spec.kind === 'item' && ['knife', 'revolver', 'shotgun', 'crowbar'].includes(spec.item)) {

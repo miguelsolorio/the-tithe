@@ -121,11 +121,18 @@ export function buildPlan(L, spec) {
   }
 
   // ---------- Walls ----------
+  // Grid vertices where a wall run ends, per direction (to plug L-corners below).
+  const vEnds = new Set();
+  const hEnds = new Set();
   // Vertical lines x = X(line): left cell (line-1, j), right cell (line, j).
   for (let line = 0; line <= W; line++) {
     let run = null;
     const flush = () => {
-      if (run) emitWall(L, 'z', X(line), Z(run.a), Z(run.b), run.A, run.B, t);
+      if (run) {
+        emitWall(L, 'z', X(line), Z(run.a), Z(run.b), run.A, run.B, t);
+        vEnds.add(`${line},${run.a}`);
+        vEnds.add(`${line},${run.b}`);
+      }
       run = null;
     };
     for (let j = 0; j <= H; j++) {
@@ -147,7 +154,11 @@ export function buildPlan(L, spec) {
   for (let line = 0; line <= H; line++) {
     let run = null;
     const flush = () => {
-      if (run) emitWall(L, 'x', Z(line), X(run.a), X(run.b), run.A, run.B, t);
+      if (run) {
+        emitWall(L, 'x', Z(line), X(run.a), X(run.b), run.A, run.B, t);
+        hEnds.add(`${run.a},${line}`);
+        hEnds.add(`${run.b},${line}`);
+      }
       run = null;
     };
     for (let i = 0; i <= W; i++) {
@@ -164,6 +175,21 @@ export function buildPlan(L, spec) {
         run = { a: i, b: i + 1, ka: a, kb: b, A: room(a), B: room(b) };
       }
     }
+  }
+
+  // Where two walls meet at an L their colliders leave a diagonal notch; plug
+  // each such corner with a small invisible post.
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const r of Object.values(R)) {
+    lo = Math.min(lo, r.bottom - 0.3);
+    hi = Math.max(hi, r.top + r.vaultRise + r.dome * 1.2);
+  }
+  const post = t / 2 + 0.02;
+  for (const key of vEnds) {
+    if (!hEnds.has(key)) continue;
+    const [i, j] = key.split(',').map(Number);
+    L.collider([X(i) - post, lo, Z(j) - post], [X(i) + post, hi, Z(j) + post], { walkable: false });
   }
 
   // ---------- Door openings ----------

@@ -65,6 +65,7 @@ export class EnemyManager {
     }
     // Separation: enemies don't stack, and the player can't walk through them.
     const p = g.player.position;
+    const ph = g.levels.current.physics;
     for (let i = 0; i < list.length; i++) {
       const a = list[i];
       if (a.dead || a.cfg.static) continue;
@@ -81,6 +82,9 @@ export class EnemyManager {
           a.pos.z -= (dz / d) * push;
           b.pos.x += (dx / d) * push;
           b.pos.z += (dz / d) * push;
+          // Pushes must not shove anyone through a wall.
+          ph.resolveCircle(a.pos, a.cfg.radius, a.move.height, 0.5);
+          ph.resolveCircle(b.pos, b.cfg.radius, b.move.height, 0.5);
         }
       }
       if (['dormant'].includes(a.state)) continue;
@@ -89,8 +93,10 @@ export class EnemyManager {
       const d = Math.hypot(dx, dz);
       const min = a.cfg.radius + 0.3;
       if (d < min && d > 1e-4 && Math.abs(p.y - a.pos.y) < 1.5) {
-        p.x += (dx / d) * (min - d);
-        p.z += (dz / d) * (min - d);
+        const push = Math.min(0.08, min - d);
+        p.x += (dx / d) * push;
+        p.z += (dz / d) * push;
+        ph.resolveCircle(p, 0.3, 1.75, 0.5);
       }
     }
     // Encounter layer follows how many things are hunting you.
