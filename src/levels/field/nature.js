@@ -181,7 +181,7 @@ function bigTrees(N) {
   }
   // A dead branch that fell onto the roof and through the big hole.
   const fb = makeTree('fallenBranch', 33);
-  const R = roofFrame(N, cx + 1.25, 0.1);
+  const R = roofFrame(N, cx + 0.35, 0.08);
   const d = norm3([R.T[0] * 0.72 + R.X[0] * 0.7, R.T[1] * 0.72 + R.X[1] * 0.7, R.T[2] * 0.72 + R.X[2] * 0.7]);
   const zb = cross3(d, R.n);
   const m = new THREE.Matrix4().makeBasis(new THREE.Vector3(...d), new THREE.Vector3(...R.n), new THREE.Vector3(...zb));
@@ -358,7 +358,7 @@ function fence(N, pts) {
     const p0 = [hinge.x, hinge.y, hinge.z];
     const p1 = [hinge.x + Math.cos(a) * L0, h(hinge.x + Math.cos(a) * L0, hinge.z + Math.sin(a) * L0), hinge.z + Math.sin(a) * L0];
     const col = lin(0x5a5046);
-    for (const [ya, yb] of [[0.3, 0.05], [0.95, 0.55], [0.3, 0.55]]) g.wood.beam([p0[0], p0[1] + ya, p0[2]], [p1[0], p1[1] + yb + (ya === yb ? 0 : 0), p1[2]], 0.1, 0.05, [0, 1, 0], vary(col, rng, 0.1));
+    for (const [ya, yb] of [[0.3, 0.05], [0.95, 0.55], [0.3, 0.55]]) g.wood.beam([p0[0], p0[1] + ya, p0[2]], [p1[0], p1[1] + yb, p1[2]], 0.1, 0.05, [0, 1, 0], vary(col, rng, 0.1));
     g.wood.beam([p1[0], p1[1] - 0.05, p1[2]], [p1[0], p1[1] + 0.6, p1[2]], 0.1, 0.06, [Math.cos(a), 0, Math.sin(a)], col);
   }
 }
@@ -395,8 +395,8 @@ function scarecrow(N, x, z) {
   }
   g.rough.tube(rope, rope.map(() => 0.012), 4, lin(0x6e5a3a));
   L.cylinder(x, z, 0.3, y, y + 2.5, null, { visible: false });
-  const cloth = lin(0x3a3026);
-  const red = lin(0x5a0d12);
+  const cloth = lin(0x6a5a48);
+  const red = lin(0x8a1c1c);
   const strip = (px, py, pz, len, col, ry = 0, rz = 0) => g.rough.box(px, py - len / 2, pz, 0.07, len, 0.006, col, 0, ry, rz);
   if (N.dawn) {
     // At dawn the cross stands empty but for a few rags.
@@ -444,7 +444,7 @@ function scarecrow(N, x, z) {
   // A strip of red cloth tied to the right arm.
   g.rough.tube([[x + 0.6, sh + 0.07, z + 0.04], [x + 0.6, sh - 0.07, z + 0.12], [x + 0.6, sh - 0.07, z - 0.04], [x + 0.6, sh + 0.07, z + 0.04]], [0.012, 0.012, 0.012, 0.012], 4, red);
   strip(x + 0.63, sh - 0.05, z + 0.12, 0.6, red, 0.2, 0.08);
-  antlerSkull(N, x + 0.06, sh + 0.66, z + 0.06);
+  antlerSkull(N, x + 0.06, sh + 0.7, z + 0.08);
 }
 
 // Deer skull with antlers, facing south (toward the track).
@@ -458,18 +458,18 @@ function antlerSkull(N, x, y, z) {
     c[1] = dirty[1] + (c[1] - dirty[1]) * k;
     c[2] = dirty[2] + (c[2] - dirty[2]) * k;
   };
-  blob(g.rough, x, y, z, 0.085, 0.075, 0.1, 3, bone, 0, 2, 0.06);
-  const snout = new THREE.CylinderGeometry(0.03, 0.06, 0.24, 8, 1);
-  const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y - 0.06, z + 0.15), new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2 + 0.45, 0, 0)), new THREE.Vector3(1, 1, 0.8));
+  blob(g.rough, x, y, z, 0.13, 0.11, 0.15, 3, bone, 0, 2, 0.06);
+  const snout = new THREE.CylinderGeometry(0.045, 0.085, 0.34, 8, 1);
+  const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y - 0.08, z + 0.22), new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2 + 0.45, 0, 0)), new THREE.Vector3(1, 1, 0.8));
   g.rough.geometry(snout, m, bone);
   snout.dispose();
   g.rough.tint = null;
   const black = lin(0x060404);
-  for (const s of [-1, 1]) g.rough.box(x + s * 0.055, y + 0.005, z + 0.07, 0.035, 0.03, 0.02, black, 0, s * 0.5, 0);
-  g.rough.box(x, y - 0.04, z + 0.2, 0.025, 0.02, 0.08, black, -0.4, 0, 0);
+  for (const s of [-1, 1]) g.rough.box(x + s * 0.085, y + 0.01, z + 0.1, 0.055, 0.045, 0.03, black, 0, s * 0.5, 0);
+  g.rough.box(x, y - 0.05, z + 0.3, 0.04, 0.03, 0.12, black, -0.4, 0, 0);
   // Antlers: a curving main beam with tines.
   for (const s of [-1, 1]) {
-    const b = [x + s * 0.05, y + 0.06, z - 0.02];
+    const b = [x + s * 0.07, y + 0.09, z - 0.03];
     const beam = [b, [b[0] + s * 0.12, b[1] + 0.12, b[2] - 0.05], [b[0] + s * 0.26, b[1] + 0.3, b[2] - 0.04], [b[0] + s * 0.3, b[1] + 0.5, b[2] + 0.04], [b[0] + s * 0.26, b[1] + 0.64, b[2] + 0.1]];
     g.rough.tube(beam, [0.022, 0.018, 0.014, 0.011, 0.006], 6, bone);
     for (const [k, dy, dz] of [[1, 0.16, 0.1], [2, 0.18, 0.12], [3, 0.14, 0.06]]) {
@@ -504,12 +504,12 @@ function well(N, x, z) {
     for (let k = 0; k < n; k++) {
       const a = ((k + (c % 2) * 0.5) / n) * TAU + (rng() - 0.5) * 0.08;
       const r = 1.0 + (rng() - 0.5) * 0.05;
-      g.rough.box(x + Math.cos(a) * r, y - 0.02 + c * 0.2, z + Math.sin(a) * r, 0.44, 0.19 + rng() * 0.03, 0.26, vary(pick(rng, stone), rng, 0.18), (rng() - 0.5) * 0.06, Math.atan2(-Math.cos(a), -Math.sin(a)), (rng() - 0.5) * 0.05);
+      blob(g.rough, x + Math.cos(a) * r, y + 0.06 + c * 0.2, z + Math.sin(a) * r, 0.25, 0.115 + rng() * 0.02, 0.16, k * 7 + c * 13, vary(pick(rng, stone), rng, 0.18), Math.atan2(-Math.cos(a), -Math.sin(a)), 1, 0.16);
     }
   }
   for (let k = 0; k < 12; k++) {
     const a = (k / 12) * TAU;
-    g.rough.box(x + Math.cos(a) * 1.0, y + 0.8, z + Math.sin(a) * 1.0, 0.5, 0.07, 0.34, vary(pick(rng, stone), rng, 0.15), 0, Math.atan2(-Math.cos(a), -Math.sin(a)) + (rng() - 0.5) * 0.1, (rng() - 0.5) * 0.06);
+    blob(g.rough, x + Math.cos(a) * 1.0, y + 0.82, z + Math.sin(a) * 1.0, 0.27, 0.05, 0.19, k * 5.3, vary(pick(rng, stone), rng, 0.15), Math.atan2(-Math.cos(a), -Math.sin(a)) + (rng() - 0.5) * 0.1, 1, 0.12);
   }
   // The shaft darkens to black; water far down.
   g.rough.tint = (px, py, pz, c) => {
@@ -529,11 +529,9 @@ function well(N, x, z) {
   g.wood.beam([x + 1.08, y + 1.75, z], [x + 1.08, y + 1.45, z + 0.15], 0.04, 0.04, [0, 0, 1], wood);
   g.wood.beam([x + 1.08, y + 1.45, z + 0.15], [x + 1.25, y + 1.45, z + 0.15], 0.04, 0.04, [0, 1, 0], wood);
   g.rough.tube([[x + 0.05, y + 1.66, z], [x + 0.06, y + 0.2, z + 0.02], [x + 0.08, y - 2.4, z + 0.04]], [0.014, 0.014, 0.012], 5, lin(0x6e5a3a));
-  const ridge = [x, y + 2.45, z];
   g.wood.beam([x - 1.2, y + 2.05, z - 0.02], [x + 1.2, y + 2.45, z - 0.02], 0.02, 0.02, [0, 1, 0], wood);
   g.wood.obox([x, y + 2.25, z - 0.38], [1, 0, 0], norm3([0, 0.47, -0.88]), norm3(cross3([1, 0, 0], norm3([0, 0.47, -0.88]))), 2.3, 0.85, 0.025, vary(wood, rng, 0.12), 1.1);
   g.wood.obox([x + 0.3, y + 1.3, z + 0.9], norm3([0.9, -0.3, 0.1]), norm3([0, 0.3, 1]), norm3(cross3(norm3([0.9, -0.3, 0.1]), norm3([0, 0.3, 1]))), 1.4, 0.8, 0.025, vary(wood, rng, 0.12), 4.4);
-  void ridge;
   // A bucket left on the rim.
   const bx = x - 0.72;
   const bz = z + 0.68;

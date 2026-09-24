@@ -208,7 +208,7 @@ function buildDusk(L, game, sky, grass) {
   });
 
   // The door: shut until you have the phone, then it opens by itself.
-  const door = L.door({ x: CABIN.x, z: DOOR_Z, y: 0.42, axis: 'x', width: 1.0, height: 2.05, material: 'woodDark', hinge: 1, id: 'cabinFront',
+  const door = L.door({ x: CABIN.x, z: DOOR_Z, y: 0.42, axis: 'x', width: 1.0, height: 2.05, material: 'woodRotten', hinge: 1, id: 'cabinFront',
     locked: (g) => (g.inventory.has('phone') ? false : 'It won’t budge. Somewhere nearby, a phone is ringing.'),
     prompt: 'Open' });
   let opened = false;

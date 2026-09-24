@@ -338,10 +338,11 @@ function barkTextures() {
     for (let x = 0; x < W; x++) {
       const u = x / W;
       const v = y / H;
+      // Furrows follow the 0.5 isolines of noise stretched along the trunk.
       const warp = tfbm(u * 4, v * 2, 4, 2, 2, 3) - 0.5;
-      const f = tfbm(u * 7 + warp * 1.4, v * 3, 7, 3, 3, 11);
-      const ridge = 1 - Math.abs(f * 2 - 1);
-      const plate = smooth(0.2, 0.75, ridge);
+      const f = tfbm(u * 6 + warp * 0.8, v * 1, 6, 1, 3, 11);
+      const f2 = tfbm(u * 11 + warp, v * 2, 11, 2, 2, 19);
+      const plate = smooth(0.0, 0.07, Math.abs(f - 0.5)) * (0.55 + 0.45 * smooth(0.0, 0.05, Math.abs(f2 - 0.5)));
       const grain = tfbm(u * 32, v * 12, 32, 12, 2, 5);
       const cut = smooth(0.46, 0.5, tfbm(u * 5, v * 14, 5, 14, 2, 17)) * smooth(0.54, 0.5, tfbm(u * 5, v * 14, 5, 14, 2, 17));
       const h = plate * 0.75 + grain * 0.25 - cut * 0.35 * plate;
@@ -648,7 +649,7 @@ const SPECS = {
   log: { form: 'log', len: [2.5, 4.5], r: [0.16, 0.3], radial: [9, 5, 4], segLen: [1, 0.3, 0.3], wander: [0.05, 0.3, 0.3], trop: [0, 0, 0], bark: 0x4a4038, moss: 1.2, still: true, cap: 0x7a6650 },
   stump: { form: 'stump', h: [0.35, 0.8], r: [0.22, 0.38], radial: [10, 6, 4], segLen: [0.4, 0.3, 0.3], wander: [0, 0, 0], trop: [0, 0, 0], bark: 0x4a4038, moss: 0.9, still: true, cap: 0x8a7458 },
   sticks: { form: 'sticks', radial: [3, 3, 3, 3], bark: 0x5a4c40, moss: 0, still: true },
-  fallenBranch: { form: 'fallen', len: [3.0, 3.6], radial: [7, 4, 3], segLen: [0.6, 0.45, 0.35], wander: [0.1, 0.3, 0.35], trop: [0, 0, 0], bark: 0x6a645c, moss: 0.3, still: true, cap: 0x8a7a64, cards: { per: [2, 3], size: [0.6, 0.9], cells: [1, 0], leafy: 0.1, up: 0.05 } },
+  fallenBranch: { form: 'fallen', len: [3.8, 4.3], radial: [7, 4, 3], segLen: [0.6, 0.45, 0.35], wander: [0.1, 0.3, 0.35], trop: [0, 0, 0], bark: 0x6a645c, moss: 0.3, still: true, cap: 0x8a7a64, cards: { per: [2, 3], size: [0.6, 0.9], cells: [1, 0], leafy: 0.1, up: 0.05 } },
 };
 
 const lerpR = (rng, r) => r[0] + rng() * (r[1] - r[0]);
@@ -1020,9 +1021,9 @@ const FORMS = {
   fallen(ctx) {
     const { spec, rng } = ctx;
     const len = lerpR(rng, spec.len);
-    const main = grow(ctx, [0, 0.075, 0], [1, 0.02, 0], len, 0.075, 0.022, 1, 0);
+    const main = grow(ctx, [0, 0.1, 0], [1, 0.02, 0], len, 0.1, 0.03, 1, 0);
     main.capStart = true;
-    for (const p of main.pts) p[1] = 0.075 + (p[1] - 0.075) * 0.15;
+    for (const p of main.pts) p[1] = 0.1 + (p[1] - 0.1) * 0.15;
     const n = 5 + Math.floor(rng() * 3);
     for (let k = 0; k < n; k++) {
       const t = 0.2 + 0.75 * ((k + rng() * 0.5) / n);

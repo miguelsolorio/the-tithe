@@ -15,7 +15,6 @@ import { Geo, addMesh, fieldMaterials, lin, mixc, mulc, vary, smooth, weedClump,
 const TAU = Math.PI * 2;
 const MOSS = lin(0x3c4a1c);
 const BOARDS = [lin(0x7a6e62), lin(0x665a4c), lin(0x564a3e), lin(0x857a6c), lin(0x5e5244), lin(0x6e6152)];
-const INNER = lin(0x4a3c30);
 const CANDLE = 0xe08a2c;
 
 export function buildCabinExterior(L, c) {
@@ -121,7 +120,7 @@ function leakStrip(K, wl, s0, s1, y0, y1, geo = K.g.leak) {
   if (K.dawn) return;
   const mid = wp(wl, (s0 + s1) / 2, (y0 + y1) / 2, -0.006);
   const k = glowAt(K, mid);
-  const col = [0.62 * k, 0.25 * k, 0.07 * k];
+  const col = [0.75 * k, 0.24 * k, 0.03 * k];
   const a = wp(wl, s0, y0, -0.006);
   const b = wp(wl, s1, y0, -0.006);
   const cc = wp(wl, s1, y1, -0.006);
@@ -230,12 +229,10 @@ function walls(K) {
         const p = wp(wl, s, 0, -0.05);
         g.wood.beam([p[0], base, p[2]], [p[0], top - 0.08, p[2]], 0.1, 0.06, [wl.nx, 0, wl.nz], vary(studCol, rng, 0.1));
       }
-      const hp = wp(wl, (o.s0 + o.s1) / 2, o.y1 + 0.03, -0.05);
       const ha = wp(wl, o.s0 - 0.06, o.y1 + 0.03, -0.05);
       const hb = wp(wl, o.s1 + 0.06, o.y1 + 0.03, -0.05);
       g.wood.beam(ha, hb, 0.08, 0.1, [0, 1, 0], vary(studCol, rng, 0.1));
       if (o.y0 > base + 0.2) g.wood.beam(wp(wl, o.s0 - 0.06, o.y0 - 0.03, -0.05), wp(wl, o.s1 + 0.06, o.y0 - 0.03, -0.05), 0.06, 0.1, [0, 1, 0], vary(studCol, rng, 0.1));
-      void hp;
     }
     g.wood.beam(wp(wl, 0, top - 0.04, -0.05), wp(wl, wl.len, top - 0.04, -0.05), 0.08, 0.1, [0, 1, 0], vary(studCol, rng, 0.1));
     // Corner boards over the siding ends.
@@ -343,7 +340,7 @@ function board(K, id, wl, r, s0, s1, y0, y1, hole) {
     g.wood.beam(wp(wl, s0, mid[1], 0.014), wp(wl, s1, mid[1], 0.014), h, 0.028, up, col, uo);
   }
   // Light through the gap under this board.
-  if (gap > 0.01 && r > 0) leakStrip(K, wl, s0, s1, y0 - 0.012, y0 + gap + 0.012);
+  if (gap > 0.01 && r > 0 && rng() < 0.6) leakStrip(K, wl, s0, s1, y0 - 0.01, y0 + gap + 0.008);
 }
 
 // ---------- Roof: sagging ridge, rafters, sheathing, shingles with holes ----------
@@ -378,11 +375,12 @@ function roofFns(K) {
     return { p, T, X, n };
   };
   const holes = [
-    { side: 1, x: c.x + 1.45, v: 0.55, rx: 0.78, rv: 0.2, deep: true },
-    { side: 1, x: c.x - 2.1, v: 0.22, rx: 0.4, rv: 0.1 },
-    { side: 1, x: c.x + 0.15, v: 0.84, rx: 0.3, rv: 0.07 },
-    { side: -1, x: c.x - 0.9, v: 0.68, rx: 0.65, rv: 0.2, deep: true },
-    { side: -1, x: c.x + 2.2, v: 0.3, rx: 0.45, rv: 0.12 },
+    { side: 1, x: c.x + 1.45, v: 0.55, rx: 1.0, rv: 0.27, deep: true },
+    { side: 1, x: c.x - 2.1, v: 0.24, rx: 0.55, rv: 0.13 },
+    { side: 1, x: c.x - 0.6, v: 0.8, rx: 0.45, rv: 0.1 },
+    { side: 1, x: c.x + 0.15, v: 0.9, rx: 0.3, rv: 0.07 },
+    { side: -1, x: c.x - 0.9, v: 0.68, rx: 0.8, rv: 0.24, deep: true },
+    { side: -1, x: c.x + 2.2, v: 0.3, rx: 0.5, rv: 0.13 },
   ];
   // 0 intact, 1 shingles gone, 2 open to the rafters.
   const hole = (x, v, side) => {
@@ -391,7 +389,7 @@ function roofFns(K) {
       if (h.side !== side) continue;
       const n = 0.22 * Math.sin(x * 9.1 + v * 23.3) + 0.14 * Math.sin(x * 23.7 - v * 41.1);
       const d = Math.hypot((x - h.x) / h.rx, (v - h.v) / h.rv) + n;
-      if (d < 1) best = Math.max(best, h.deep && d < 0.72 ? 2 : 1);
+      if (d < 1) best = Math.max(best, h.deep && d < 0.8 ? 2 : 1);
     }
     return best;
   };
@@ -439,7 +437,7 @@ function roof(K) {
     g.wood.beam([rx, fa.p[1] - 0.2, fa.p[2]], [rx, fb.p[1] - 0.2, fb.p[2]], 0.1, 0.05, [0, 1, 0], vary(beamCol, rng, 0.1));
   }
   // Sheathing boards on the rafters, gone where the roof is open.
-  const sheath = lin(0x5a4a3a);
+  const sheath = lin(0x8a7458);
   for (const side of [1, -1]) {
     for (let v = 0.03; v < 0.99; v += 0.25 / R.len) {
       let start = null;
@@ -660,7 +658,7 @@ function chimney(K) {
   const sz1 = c.z + 0.31;
   const bricks = [lin(0x6a3424), lin(0x7a4030), lin(0x5a2c20), lin(0x844a36), lin(0x4a2a22), lin(0x703a2a)];
   const pivotY = 3.75;
-  const lean = -0.075;
+  const lean = -0.1;
   const sf = [
     { a: [sx0, sz1], b: [sx0, sz0], n: [-1, 0] },
     { a: [sx0, sz0], b: [sx1, sz0], n: [0, -1] },
@@ -680,7 +678,9 @@ function chimney(K) {
         const s1 = Math.min(L0, s + 0.2);
         if (s1 - s0 < 0.06) continue;
         const t = (s0 + s1) / 2 / L0;
-        const topH = 4.02 + 0.3 * Math.sin(fi * 1.7 + s * 5.3) + 0.18 * Math.sin(fi * 3.1 + s * 11.7) - (fi === 3 ? 0.3 : 0);
+        // Ragged top, a whole corner gone on the north-west.
+        const corner = (fi === 0 && s < 0.3) || (fi === 1 && s < 0.35) ? 0.55 : 0;
+        const topH = 4.02 + 0.3 * Math.sin(fi * 1.7 + s * 5.3) + 0.18 * Math.sin(fi * 3.1 + s * 11.7) - (fi === 3 ? 0.3 : 0) - corner;
         if (y > topH) continue;
         if (rng() < 0.02 + Math.max(0, y - 3.4) * 0.14) continue;
         let px = f.a[0] + (f.b[0] - f.a[0]) * t - f.n[0] * 0.05;
@@ -918,7 +918,7 @@ function tinSheet(K, x0, x1, z0, z1, yAt, peel) {
 
 // ---------- Doorway ----------
 function doorway(K) {
-  const { c, rng, g, base, z1, L } = K;
+  const { c, rng, g, base, z1 } = K;
   const dx0 = c.x - 0.5;
   const dx1 = c.x + 0.5;
   const dy1 = base + 2.08;
@@ -957,11 +957,10 @@ function doorway(K) {
   g.rough.tube(bail, bail.map(() => 0.004), 3, rust);
   // Warm line of light around the shut door (hidden once the door opens).
   if (!K.dawn) {
-    const col = [0.8, 0.34, 0.1];
+    const col = [0.95, 0.34, 0.05];
     g.doorLeak.quadP([dx0, base + 0.02, z1 - 0.06], [dx0 + 0.07, base + 0.02, z1 - 0.06], [dx0 + 0.07, dy1, z1 - 0.06], [dx0, dy1, z1 - 0.06], col);
     g.doorLeak.quadP([dx0, base + 2.0, z1 - 0.06], [dx1, base + 2.0, z1 - 0.06], [dx1, dy1, z1 - 0.06], [dx0, dy1, z1 - 0.06], col);
   }
-  void L;
 }
 
 // ---------- Windows: casings, broken glass, boards, a hanging shutter ----------
@@ -1056,7 +1055,7 @@ function windows(K) {
     }
     // Warm haze in the window, for reading the light from afar.
     if (!K.dawn) {
-      const k = w.kind === 'sealed' ? 0.3 : w.kind === 'boarded' ? 0.6 : 0.95;
+      const k = w.kind === 'sealed' ? 0.35 : w.kind === 'boarded' ? 0.9 : w.kind === 'curtain' ? 1.3 : 1.8;
       const n = 4;
       const b = g.haze.count;
       for (let j = 0; j <= n; j++) {
@@ -1064,7 +1063,7 @@ function windows(K) {
           const u = i / n;
           const v = j / n;
           const p = wp(wl, w.s0 - 0.08 + (w.s1 - w.s0 + 0.16) * u, w.y0 - 0.08 + (w.y1 - w.y0 + 0.16) * v, -0.22);
-          const f = Math.max(0, 1 - Math.hypot((u - 0.5) * 2, (v - 0.38) * 2.2)) ** 1.5 * k;
+          const f = Math.max(0, 1 - Math.hypot((u - 0.5) * 1.7, (v - 0.4) * 1.9)) ** 1.2 * k;
           g.haze.vert(p[0], p[1], p[2], nrm[0], 0, nrm[2], u, v, [f, f * 0.52, f * 0.18]);
         }
       }
@@ -1285,12 +1284,12 @@ function interior(K) {
   web(K, [K.x0 + 0.1, tt, K.z1 - 0.1], [1, 0, 0], [0, 0, -1], 0.6);
   web(K, [T.x1 - 0.08, T.y - 0.05, T.z0 + 0.08], [-1, 0, 0], [0, -1, 0], 0.32, [0, 0, 1]);
   web(K, [jx, top + 0.02, c.z - 1.6], [0, 0.55, 0.83], [0, 0, 1], 0.5);
-  web(K, [K.x0 + 0.12, base + 1.2, K.z0 + 0.12], [0, 1, 0], [1, 0, 1], 0.4, [1, 0, 1]);
+  web(K, [K.x0 + 0.12, base + 1.2, K.z0 + 0.12], [0, 1, 0], [0.707, 0, 0.707], 0.4, [0.707, 0, 0.707]);
 }
 
 // Lumpy, stained mattress top and a blanket spilling over its edge.
 function mattressTop(K, x0, x1, z0, z1, y) {
-  const { g, rng } = K;
+  const { g } = K;
   const nx = 10;
   const nz = 5;
   const cloth = lin(0x6a6048);
@@ -1335,7 +1334,6 @@ function mattressTop(K, x0, x1, z0, z1, y) {
       g.rough.quad(a, a + 9, a + 10, a + 1);
     }
   }
-  void rng;
 }
 
 function fireplace(K) {
@@ -1561,12 +1559,12 @@ function finish(K) {
       // The glow in the windows gives way to the real candlelight up close.
       const p = game.player.position;
       const d = Math.hypot(p.x - c.x, p.z - c.z);
-      mats.haze.opacity = Math.min(1, Math.max(0.15, (d - 4) / 12));
+      mats.haze.opacity = Math.min(1, Math.max(0.08, (d - 4) / 16));
       if (door.visible && game.flags.has('field.phone')) door.visible = false;
     });
     const [tl, ml] = K.lights;
-    const src = L.light({ pos: tl, color: CANDLE, intensity: 1.8, distance: 6.5, flicker: 0.5, kind: 'candle' });
-    L.light({ pos: ml, color: CANDLE, intensity: 1.15, distance: 5, flicker: 0.6, kind: 'candle' });
+    const src = L.light({ pos: tl, color: CANDLE, intensity: 2.4, distance: 6.5, flicker: 0.5, kind: 'candle' });
+    L.light({ pos: ml, color: CANDLE, intensity: 1.5, distance: 5, flicker: 0.6, kind: 'candle' });
     src.onFlicker = (f) => {
       mats.flame.color.setScalar(0.7 + 0.35 * f);
       mats.leak.color.setScalar(0.82 + 0.22 * f);
@@ -1583,6 +1581,4 @@ function finish(K) {
   L.collider([K.x1 - 0.12, 0, K.z0], [K.x1 + 0.05, top, K.z1], wall);
   L.collider([K.x0 - 0.05, 0, K.z0], [K.x0 + 0.12, top, K.z1], wall);
   L.collider([K.x0, -0.3, K.z0], [K.x1, base, K.z1], { walkable: true, surface: 'wood' });
-  // Porch roof and eaves stop bullets and the flashlight's shadows need nothing more.
-  void INNER;
 }

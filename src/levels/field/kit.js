@@ -241,7 +241,7 @@ function grainTextures() {
       const fibre = tfbm(u * 24, v * 96, 24, 96, 1, 47);
       const blot = tfbm(u * 3, v * 4, 3, 4, 3, 53);
       const crack = smooth(0.03, 0, Math.abs(tfbm(u * 2, v * 9, 2, 9, 2, 59) - 0.5));
-      let a = 0.66 + (lines - 0.5) * 0.6 + (fibre - 0.5) * 0.14 + (blot - 0.5) * 0.3;
+      let a = 0.84 + (lines - 0.5) * 0.5 + (fibre - 0.5) * 0.12 + (blot - 0.5) * 0.26;
       let h = lines * 0.6 + fibre * 0.25;
       for (const [kx, ky] of knots) {
         let dx = Math.abs(u - kx);
@@ -285,7 +285,7 @@ function gritTextures() {
       const n = tfbm(u * 6, v * 6, 6, 6, 4, 61);
       const f = tfbm(u * 32, v * 32, 32, 32, 2, 67);
       const pit = smooth(0.7, 0.8, tfbm(u * 12, v * 12, 12, 12, 2, 71));
-      const a = Math.max(0.2, Math.min(1, 0.74 + (n - 0.5) * 0.45 + (f - 0.5) * 0.25 - pit * 0.25));
+      const a = Math.max(0.2, Math.min(1, 0.84 + (n - 0.5) * 0.4 + (f - 0.5) * 0.22 - pit * 0.25));
       const i = y * W + x;
       hgt[i] = n * 0.6 + f * 0.4 - pit * 0.3;
       const k = i * 4;
