@@ -33,19 +33,23 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 - [x] Play-through with final textures, props, models and audio (chapel, knife fight, ropes, stairs, death and retry)
 
 ### Milestone 3: upstairs and basement
-- [~] Upstairs and attic: fuse, revolver, mirror scare, flickering power (subagent, Opus)
-- [~] Flooded basement: wading, the drowned, drowned dining room, crowbar, grate (subagent, Opus)
-- [ ] Integrate, play through, commit
+- [x] Upstairs and attic: fuse, revolver, mirror scare, flickering power, hidden shrine, attic ambush (subagent, Opus)
+- [x] Flooded basement: wading, the drowned, drowned dining room, crowbar, grate, flood-escape variant (subagent, Opus)
+- [x] Integrate, play through, commit (`8acf2ea`)
+- Pacing: one agent at a time from here to stay inside the 5-hour usage window
 
 ### Milestone 4: cistern and caves
-- [~] Cistern tunnels: lampreys, hounds, baptism pool, valve wheel, sluice, ossuary crawlspace (subagent, Opus)
-- [~] Flesh caves: skinless, wall maws, the womb, shotgun, sphincter door (subagent, Opus)
-- [ ] Integrate, play through, commit
+- [x] Cistern tunnels: lampreys, hounds, baptism pool, valve wheel, sluice, ossuary crawlspace, flood variant (subagent, Opus; `5c1b3f7`)
+- [x] Flesh caves: skinless, wall maws, the womb, shotgun, sphincter door, flood variant (subagent, Opus; `c3ac5d5`)
+- [x] Integrate, load-test, commit
 
 ### Milestone 5: boss and ending
-- [~] The heart: the Mother Below (lash, spit, summon, slam), heartbeat tied to her health (subagent, Opus)
+- [~] The heart: the Mother Below (lash, spit, summon, slam), heartbeat tied to her health (subagent, Opus; stops itself at 94% usage)
 - [x] Sister follower, flood variants of the house, dawn field ending
 - [ ] Full escape run, commit
+
+### HUD
+- [x] Health bar bottom centre, weapon and ammo centred above it (`2bca63e`)
 
 ### Milestone 6: polish
 - [ ] Balance and performance pass, full playthrough with no console errors
