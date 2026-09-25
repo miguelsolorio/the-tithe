@@ -172,7 +172,7 @@ function buildDusk(L, game, sky, grass) {
         g.setFlag('field.phone');
         setTimeout(() => {
           g.audio.play('creak', { pos: new THREE.Vector3(CABIN.x, 1.2, DOOR_Z) });
-          g.hud.say('Behind you, the cabin door creaks open.', 4);
+          g.hud.say('Behind you, something moves inside the cabin.', 4);
         }, 4200);
       },
     });
@@ -209,25 +209,21 @@ function buildDusk(L, game, sky, grass) {
     }
   });
 
-  // The door: shut until you have the phone, then it opens by itself.
+  // The door stays shut. Opening it cuts straight inside; the cabin's interior
+  // is never seen from the field.
   const door = L.door({ x: CABIN.x, z: DOOR_Z, y: 0.42, axis: 'x', width: 1.0, height: 2.05, material: 'woodRotten', hinge: 1, id: 'cabinFront',
     locked: (g) => (g.inventory.has('phone') ? false : 'It won’t budge. Somewhere nearby, a phone is ringing.'),
     prompt: 'Open' });
-  let opened = false;
-  L.onUpdate((dt, t, g) => {
-    if (!opened && g.flags.has('field.phone') && g.levels.current?.id === 'field') {
-      opened = true;
-      setTimeout(() => {
-        if (!door.open) {
-          door.open = true;
-          door.collider.enabled = false;
-          door.target = -1.7;
-        }
-      }, 4200);
+  door.interactable.onUse = (g) => {
+    if (g.levels.transitioning) return;
+    if (!g.inventory.has('phone')) {
+      g.audio.play('doorLocked', { pos: new THREE.Vector3(CABIN.x, 1.4, DOOR_Z) });
+      g.hud.say('It won’t budge. Somewhere nearby, a phone is ringing.', 3);
+      return;
     }
-  });
-  // Step through the doorway: the house is much bigger inside.
-  L.exit({ min: [CABIN.x - 0.5, -1, DOOR_Z - 1.2], max: [CABIN.x + 0.5, 4, DOOR_Z - 0.3], to: 'ground', spawn: 'fromField', requires: (g) => g.inventory.has('phone') && door.open });
+    g.audio.play('creak', { pos: new THREE.Vector3(CABIN.x, 1.2, DOOR_Z) });
+    g.levels.goTo('ground', 'fromField');
+  };
   // Candlelight in the window.
   L.light({ pos: [CABIN.x + 1.6, 1.6, CABIN.z + 1.4], color: 0xe08a2c, intensity: 0.8, distance: 5, flicker: 0.5 });
 }
