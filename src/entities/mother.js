@@ -599,6 +599,7 @@ export class Mother extends Enemy {
     });
     g.hud.boss(null);
     g.audio.setBossHealth(0);
+    g.analytics?.bossDefeated();
     this.hooks.onDeath?.(this);
   }
 

@@ -81,3 +81,8 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 - [x] Shelves spill: stabbing or shooting a bookshelf knocks books out (knife 2–4, revolver 1–3, shotgun pellets 0–2 each), leaving gaps; they tumble and settle flat on the floor. Storage shelves drop jars (which shatter), boxes and cans
 - [x] No draw-call cost at rest: interactive props stay in the static batch, and touching one collapses its vertex range and swaps in the live object (`src/systems/props.js`, `hideRange` in `src/world/batcher.js`, part tags via `Kit.tag`)
 - [x] Wear: knife hits leave gouges (and the odd split along the grain), bullets leave splintered holes. The marks are projected decals clipped to the prop's surface and stay on it when it moves (one draw call per damaged prop, `src/systems/propDamage.js`). Each hit sprays splinters and flicks off wood chips, which get bigger as the prop wears down. At `hp` a chair gives way into `chairBroken`, and everything else bursts into planks (`hp`/`breaksInto` in `interactive.js`)
+
+### Analytics
+- [x] Google Analytics tag (`G-PDB3DT24E5`) in `index.html`
+- [x] Gameplay events (`src/systems/analytics.js`): `game_start`, `level_enter` (with `level_index` for how far players get), `milestone` (story flags, once per run), `enemy_killed` (type, weapon), `item_pickup`, `player_death` (cause), `checkpoint_retry`, `boss_defeated`, `game_complete`, `game_quit`. Dev and `?debug` runs log `[analytics]` to the console instead of sending
+- [ ] Register `level_id`, `level_index`, `enemy_type`, `weapon`, `milestone`, `cause`, `item_id` as custom dimensions in GA Admin

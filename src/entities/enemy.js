@@ -462,7 +462,7 @@ export class Enemy {
       const L = g.levels.builderFor(this.level);
       g.pickups.create(L, { id: `drop:${this.id}`, kind: drop.kind, amount: drop.amount, pos });
     }
-    g.events.emit('enemyKilled', this);
+    g.events.emit('enemyKilled', this, weapon);
   }
 
   animate(dt) {

@@ -32,6 +32,7 @@ export class Inventory {
   addItem(id, { silent = false } = {}) {
     if (this.items.includes(id)) return;
     this.items.push(id);
+    this.game.analytics?.itemPickup(id);
     const info = ITEM_INFO[id];
     if (info?.weapon && !this.weapons.includes(info.weapon)) {
       this.weapons.push(info.weapon);
