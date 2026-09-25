@@ -861,16 +861,16 @@ function syncCheck(shots) {
     for (let k = i; k < i + WIN && k < samples.length; k++) e += samples[k] * samples[k];
     return e / WIN;
   };
-  // The first sharp rise to near the loudest point around each shot (later
-  // rises are hits, screams, stingers).
+  // The first sharp rise to near the loudest point within 100 ms of each shot
+  // (later rises are hits, screams, stingers).
   const offsets = shots.map((t) => {
     let peak = 0;
-    for (let at = t - 0.1; at < t + 0.25; at += 0.005) peak = Math.max(peak, energy(Math.round(at * RATE)));
-    for (let at = t - 0.1; at < t + 0.25; at += 0.005) {
+    for (let at = t - 0.1; at < t + 0.1; at += 0.005) peak = Math.max(peak, energy(Math.round(at * RATE)));
+    for (let at = t - 0.1; at < t + 0.1; at += 0.005) {
       const i = Math.round(at * RATE);
       if (i < WIN * 8) continue;
       const before = (energy(i - WIN * 8) + energy(i - WIN * 4)) / 2 + 1e3;
-      if (energy(i) > 0.3 * peak && energy(i) > 3 * before) return { t, ms: Math.round((at - t) * 1000) };
+      if (energy(i) > 0.5 * peak && energy(i) > 2.5 * before) return { t, ms: Math.round((at - t) * 1000) };
     }
     return null;
   }).filter(Boolean);
