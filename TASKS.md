@@ -63,7 +63,7 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 - [x] Five icon + social image directions; picked **Sigil** (blood-red seal, IM Fell English type), the other four removed
 - [x] Wired in: SVG favicon + `favicon.ico`, apple-touch-icon, manifest icons (with maskable), `og:` / `twitter:` tags in `index.html` (source `branding/sigil.html`, `node branding/render.mjs`)
 - [x] README: hero image, play link, six in-game screenshots (`node branding/render.mjs shots`)
-- [x] README demo video: 45 s scripted tour (phone → cabin door → ground floor hall and stairs in one take, then chapel, basement, cistern, caves), no final boss (`npm run demo` → `docs/demo/demo.mp4` + `poster.jpg`). Frames stepped offline; audio from a deterministic real-time replay cut per segment against the audio clock (sync check prints gunshot offsets). Movement walks nav-grid paths with eased stick input; `--stills` reports stuck or cut-short scripts
+- [x] README demo video: 45 s scripted tour (phone → cabin door → ground floor hall and stairs in one take, then chapel, basement, cistern, caves), no final boss (`npm run demo` → `docs/demo/demo.mp4`; the README embeds an uploaded copy that plays inline). Frames stepped offline; audio from a deterministic real-time replay cut per segment against the audio clock (sync check prints gunshot offsets). Movement walks nav-grid paths with eased stick input; `--stills` reports stuck or cut-short scripts
 
 ### Audio tweaks
 - [x] House interior (ground floor + upstairs): liturgy bed at 22% and world sounds (creaks, chants, enemies) at 35%; both swell to 50% as you near a live enemy (3–12 m), easing back down after (`src/levels/proximityAudio.js`). Chant gains lowered (chapel 0.6→0.3, upstairs loop 0.35→0.2)
