@@ -66,3 +66,10 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 
 ### Audio tweaks
 - [x] House interior (ground floor + upstairs): liturgy bed at 22% and world sounds (creaks, chants, enemies) at 35%; both swell to 50% as you near a live enemy (3–12 m), easing back down after (`src/levels/proximityAudio.js`). Chant gains lowered (chapel 0.6→0.3, upstairs loop 0.35→0.2)
+
+### Mobile
+- [x] Touch controls (`src/ui/touch.js`): floating stick with sprint at the rim, drag to look, attack (drag to aim), use, reload, flashlight, pause; tap the prompt to use and a weapon slot to equip; `?touch` forces them on
+- [x] Mobile shell: no zoom or callouts, safe-area insets, fullscreen + landscape lock on Begin (where supported), audio unlocked inside the tap, pause when hidden or turned upright, "turn sideways" overlay
+- [x] Menus fit a sideways phone (scrollable screens, compact sizes, pause menu side by side); touch control lists and tutorial lines; HUD hidden behind menus on touch
+- [x] Phones render at 1× pixel ratio with a 512 px flashlight shadow
+- [ ] Play-test on a real iPhone and Android phone (so far tested only in emulated iPhone 13 portrait and landscape)

@@ -23,7 +23,8 @@ export class Player {
     const f = CONFIG.flashlight;
     this.spot = new THREE.SpotLight(f.color, f.intensity, f.distance, f.angle, f.penumbra, f.decay);
     this.spot.castShadow = true;
-    this.spot.shadow.mapSize.set(1024, 1024);
+    const shadowSize = game.touch ? 512 : 1024;
+    this.spot.shadow.mapSize.set(shadowSize, shadowSize);
     this.spot.shadow.camera.near = 0.2;
     this.spot.shadow.camera.far = f.distance;
     this.spot.shadow.bias = -0.0005;
@@ -158,7 +159,8 @@ export class Player {
     _right.set(-_fwd.z, 0, _fwd.x);
     _wish.set(0, 0, 0).addScaledVector(_fwd, f).addScaledVector(_right, r);
     const moving = _wish.lengthSq() > 0;
-    if (moving) _wish.normalize();
+    // Keys give full speed; the touch stick can walk slower than full tilt.
+    if (_wish.lengthSq() > 1) _wish.normalize();
     const wantsSprint = input.isDown('ShiftLeft') || input.isDown('ShiftRight');
     this.sprinting = wantsSprint && moving && f >= 0;
     let speed = this.sprinting ? C.sprintSpeed : C.walkSpeed;

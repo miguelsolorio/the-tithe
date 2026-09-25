@@ -4,6 +4,7 @@
   "description": "A first-person horror game. Your sister is this year's tithe.",
   "start_url": "./",
   "display": "fullscreen",
+  "orientation": "landscape",
   "background_color": "#050303",
   "theme_color": "#050303",
   "icons": [
