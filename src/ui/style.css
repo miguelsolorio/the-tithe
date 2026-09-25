@@ -134,13 +134,20 @@ body {
   opacity: 1;
 }
 
-/* Bottom centre: health bar, with the weapon and ammo stacked above it. */
-#health {
+/* Bottom centre stack: ammo, then key items, then the health bar. */
+#vitals {
   position: absolute;
   left: 50%;
   bottom: 26px;
-  width: min(280px, 60vw);
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#health {
+  width: min(280px, 60vw);
 }
 
 #health .bar {
@@ -170,10 +177,6 @@ body {
 }
 
 #ammo {
-  position: absolute;
-  left: 50%;
-  bottom: 42px;
-  transform: translateX(-50%);
   text-align: center;
   white-space: nowrap;
   text-shadow: 0 1px 4px #000;
@@ -199,11 +202,16 @@ body {
 }
 
 #items {
-  position: absolute;
-  left: 24px;
-  top: 22px;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
+  max-width: min(480px, 90vw);
+}
+
+#ammo:not(:has(.label:not(:empty))),
+#items:empty {
+  display: none;
 }
 
 #items .item {
