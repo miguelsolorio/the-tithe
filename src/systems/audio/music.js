@@ -2,7 +2,7 @@
 // Each bed builder is MUSIC[name](H, L, engine): L = { bus, add, every,
 // later } is the lifecycle harness from createBed(); engine carries mutable
 // state a bed needs to read every beat (e.g. boss heartbeat tempo).
-import { bell, chant, drip, heart, squelch } from './sfx-depths.js';
+import { bell, creak, drip, heart, squelch, thump } from './sfx-depths.js';
 
 // Bed lifecycle: bus feeds engine.musicBus; setZone() fades bus.gain in/out
 // and calls kill() once a fade-out finishes to stop every node and timer.
@@ -99,8 +99,11 @@ export const MUSIC = {
     L.later(H.rnd(4000, 10000), toll);
   },
 
-  liturgy(H, L) {
+  // Drone + choir ride the bed (hushed in the house until an enemy is close);
+  // the bell and the house settling skip it so they're heard regardless.
+  liturgy(H, L, engine) {
     const b = L.bus;
+    const amb = engine.musicBus;
     const lp = H.F('lowpass', 1400);
     const tr = H.G(1);
     H.chain(tr, lp, b);
@@ -115,10 +118,20 @@ export const MUSIC = {
       L.add(s, s2);
     });
     choirPad(H, L, b);
-    bell(H, b, null, 0.45, 73.42);
-    L.every(9000, () => bell(H, b, null, 0.45, 73.42));
-    L.later(5000, () => chant(H, b, null, 0.25));
-    L.every(14000, () => chant(H, b, null, 0.25));
+    const toll = () => {
+      bell(H, amb, null, 0.25, 73.42);
+      L.later(H.rnd(20000, 40000), toll);
+    };
+    L.later(H.rnd(3000, 8000), toll);
+    // The house settling somewhere out of sight, now and then.
+    const settle = () => {
+      const r = Math.random();
+      if (r < 0.45) creak(H, amb, null, 0.2);
+      else if (r < 0.8) thump(H, amb, null, 0.15);
+      else bell(H, amb, null, 0.12, 55);
+      L.later(H.rnd(25000, 50000), settle);
+    };
+    L.later(H.rnd(15000, 30000), settle);
   },
 
   undertow(H, L) {

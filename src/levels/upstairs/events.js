@@ -120,7 +120,7 @@ export function setupEvents(U, { bulbs, hatch, attic }) {
   });
 
   // ---------- Ambience ----------
-  const chant = L.loopSound('chantLoop', [0.25, 1.4, -9.8], { radius: 15, gain: 0.2 });
+  const chant = L.loopSound('chantLoop', [0.25, 1.4, -9.8], { radius: 7, gain: 0.12 });
   let chantOn = true;
   L.onUpdate(() => {
     if (!chantOn) return;
