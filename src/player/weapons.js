@@ -52,6 +52,7 @@ export class Weapons {
 
   reset() {
     this.current = null;
+    this.game.hud.setWeapon(null);
     this.state = 'idle';
     this.timer = 0;
     this.cooldown = 0;

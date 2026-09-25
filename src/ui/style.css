@@ -226,6 +226,22 @@ body {
   position: relative;
 }
 
+#items .item {
+  transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.15s, opacity 0.15s;
+}
+
+#items:has(.active) .item:not(.active) {
+  opacity: 0.55;
+}
+
+#items .item.active {
+  border-color: var(--candle);
+  color: #f4c98a;
+  background: rgba(60, 30, 10, 0.7);
+  box-shadow: 0 0 10px rgba(224, 138, 44, 0.45), inset 0 0 6px rgba(224, 138, 44, 0.25);
+  transform: translateY(-3px);
+}
+
 #items .item svg {
   width: 24px;
   height: 24px;

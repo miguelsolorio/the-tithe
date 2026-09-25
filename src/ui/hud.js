@@ -33,6 +33,7 @@ export class HUD {
     this.noticeTimer = 0;
     this.lastPrompt = undefined;
     this.shownItems = [];
+    this.weapon = null;
   }
 
   show() {
@@ -48,7 +49,10 @@ export class HUD {
     this.healthEl.classList.toggle('low', frac < 0.3);
   }
 
-  setWeapon() {}
+  setWeapon(name) {
+    this.weapon = name || null;
+    for (const el of this.itemsEl.children) el.classList.toggle('active', el.dataset.id === this.weapon);
+  }
 
   setAmmo(a) {
     if (!a) {
@@ -65,7 +69,8 @@ export class HUD {
       .filter((id) => ICONS[id])
       .map((id) => {
         const isNew = !this.shownItems.includes(id);
-        return `<div class="item${isNew ? ' new' : ''}" title="${ITEM_INFO[id]?.label || id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[id]}</svg></div>`;
+        const cls = `item${isNew ? ' new' : ''}${id === this.weapon ? ' active' : ''}`;
+        return `<div class="${cls}" data-id="${id}" title="${ITEM_INFO[id]?.label || id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[id]}</svg></div>`;
       })
       .join('');
     this.itemsEl.innerHTML = html;

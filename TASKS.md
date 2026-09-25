@@ -50,6 +50,7 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 
 ### HUD
 - [x] Health bar bottom centre, weapon and ammo centred above it (`2bca63e`)
+- [x] Equipped weapon slot highlighted in the item row (candle border and glow, raised; other slots dimmed)
 
 ### Milestone 6: polish
 - [x] Full playthrough with no console errors (QA pass: field → ground → upstairs → basement → cistern → caves → heart → escape → dawn ending, title/pause/death/end screens); no bugs found in src/**
