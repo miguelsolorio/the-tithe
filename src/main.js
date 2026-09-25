@@ -278,7 +278,7 @@ class Game {
     this.player.reset();
     this.weapons.reset();
     this.hud.setHealth(1);
-    this.hud.setItems([]);
+    this.inventory.refreshHud();
     this.weapons.updateHud();
     this.hud.clearMessages();
     this.levels.disposeAll();
@@ -421,6 +421,7 @@ class Game {
       this.time += dt;
       this.player.update(dt);
       this.weapons.update(dt);
+      this.inventory.update();
       this.interaction.update();
       this.levels.update(dt, this.time);
       this.enemies.update(dt);

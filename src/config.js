@@ -32,5 +32,6 @@ export const CONFIG = {
     shotgun: { damage: 16, pellets: 9, mag: 2, cooldown: 0.75, reload: 2.0, spread: 0.075, range: 30 },
   },
   bandageHeal: 40,
+  bandageMax: 3,
   ammoPickup: { revolver: 6, shotgun: 4 },
 };
