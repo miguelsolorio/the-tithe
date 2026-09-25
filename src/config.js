@@ -42,5 +42,6 @@ export const CONFIG = {
     debrisCap: 40, // loose books and jars on the floor per level (each is a draw call)
   },
   bandageHeal: 40,
+  bandageMax: 3,
   ammoPickup: { revolver: 6, shotgun: 4 },
 };
