@@ -7,6 +7,8 @@ import { ritualRoom, storage, robingRoom, closetAndShrine } from './upstairs/roo
 import { buildAttic } from './upstairs/attic.js';
 import { setupEvents } from './upstairs/events.js';
 import { regionCulling, mergeDoor } from './upstairs/culling.js';
+import { ATTIC } from './upstairs/common.js';
+import { dressLevel, distantHowls } from '../world/ambience/index.js';
 
 // Level 3: upstairs and the attic. The top of the grand stairs opens onto a
 // long hallway where the bulbs are dying. Behind double doors the cult prays
@@ -59,6 +61,52 @@ export default {
     closetAndShrine(U);
     const attic = buildAttic(U);
     events = setupEvents(U, { bulbs, hatch, attic });
+    decay(L, P);
     regionCulling(L, U.cull);
   },
 };
+
+// Neglect: webs everywhere (thickest in the attic), papers and rags on the
+// floors, rats, moths at the dying bulbs, flies on the dead man in the
+// bedroom, dust in the torch beam and wolves heard through the walls.
+function decay(L, P) {
+  const A = ATTIC;
+  const yR = A.y + A.ridge;
+  const roofY = (z) => yR - ((A.ridge - A.eave) * Math.abs(z)) / A.z;
+  const spans = [];
+  // Sheets from the ridge down to the roof slope, and between the knee walls.
+  for (let x = A.x0 + 1.5; x < A.x1 - 1; x += L.rng.range(1.8, 3.2)) {
+    const s = L.rng() < 0.5 ? 1 : -1;
+    const z = s * L.rng.range(1.5, 3);
+    spans.push([[x, yR - 0.08, 0], [x + L.rng.range(0.3, 0.9), roofY(z) - 0.05, z]]);
+  }
+  dressLevel(L, P, {
+    webs: { ceil: 0.85, floor: 0.4, spiders: 0.3 },
+    spans,
+    clutter: {
+      H: [['paper', 4], ['plaster', 4]],
+      M: [['glass', 3], ['rags', 2]],
+      N: [['plaster', 3], ['rags', 2]],
+      Q: [['paper', 8], ['rags', 3], ['glass', 2]],
+      S: [['paper', 5], ['books', 4], ['plaster', 3]],
+      W: [['rags', 4], ['stubs', 4]],
+      R: [['stubs', 10, 1.4], ['bones', 3]],
+      X: [['stubs', 6], ['bones', 4]],
+      B: [['glass', 3]],
+    },
+    rats: { rooms: 'HSQN', n: 3, spots: [[A.x0 + 3, A.y, -A.z + 1.6], [A.x1 - 6, A.y, A.z - 1.4]] },
+    moths: ['bulb'],
+    flies: [[-16.4, 1.0, -6.1]],
+    motes: { color: 0xd8ccb0 },
+    // The attic's gable ends, low where the roof meets the floor, and up at the ridge.
+    nooks: [
+      [[A.x0 + 0.1, A.y + 0.01, -A.z + 0.3], [0, 0, 1], [1, 0, 0], 1, 1.1],
+      [[A.x0 + 0.1, A.y + 0.01, A.z - 0.3], [0, 0, -1], [1, 0, 0], 1, 1.0],
+      [[A.x1 - 0.1, A.y + 0.01, -A.z + 0.3], [0, 0, 1], [-1, 0, 0], 1, 1.2],
+      [[A.x1 - 0.1, A.y + 0.01, A.z - 0.3], [0, 0, -1], [-1, 0, 0], 1, 0.9],
+      [[A.x0 + 0.1, yR - 0.1, 0], [0, -0.5, 0.87], [1, 0, 0], -1, 1.1],
+      [[A.x1 - 0.1, yR - 0.1, 0], [0, -0.5, -0.87], [-1, 0, 0], -1, 1.1],
+    ],
+  });
+  distantHowls(L);
+}

@@ -90,3 +90,9 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 - [x] Google Analytics tag (`G-PDB3DT24E5`) in `index.html`
 - [x] Gameplay events (`src/systems/analytics.js`): `game_start`, `level_enter` (with `level_index` for how far players get), `milestone` (story flags, once per run), `enemy_killed` (type, weapon), `item_pickup`, `player_death` (cause), `checkpoint_retry`, `boss_defeated`, `game_complete`, `game_quit`. Dev and `?debug` runs log `[analytics]` to the console instead of sending
 - [ ] Register `level_id`, `level_index`, `enemy_type`, `weapon`, `milestone`, `cause`, `item_id` as custom dimensions in GA Admin
+
+### Atmosphere
+- [x] Shared ambience kit (`src/world/ambience/`): ground mist and flashlight-lit dust motes, corner cobwebs with spiders, floor debris, rats, moths, flies, crows; `dressLevel()` applies it per level (≤ 3 extra draw calls in view), halved on phones
+- [x] Field: wolves howling from the treeline and glowing eyes at night (`field/wolves.js`), crows, night mist; dawn mist
+- [x] Every level dressed: webs in all house/basement/cistern rooms (thick in the attic), debris per room, extra boxes and sheet-covered furniture on the ground floor, rats, moths, flies on the dead, teal mist on the water, crimson haze in the caves and heart, wolves heard through the house walls
+- [ ] Headphone listen-through: the howl, caw, rat and fly sounds were tuned without listening and may need a mix pass

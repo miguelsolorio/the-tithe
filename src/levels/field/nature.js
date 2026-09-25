@@ -13,10 +13,10 @@ import { Geo, addMesh, fieldMaterials, lin, mixc, mulc, vary, smooth, weedClump,
 const TAU = Math.PI * 2;
 const PHONE = [-7.5, 11];
 const WELL = [14, -9];
-const SCARECROW = [7, 22];
+export const SCARECROW = [7, 22];
 const BALES = [[-16, 18, 0.3], [-17.6, 18.5, 1.2], [-9, 36, 0.7], [20, 12, 2]];
 const DEAD = [[-11, -6, 'snag', 1.5], [24, 30, 'deadOak', 1.0], [-30, 44, 'deadOak', 1.2]];
-const FENCES = [
+export const FENCES = [
   [[-20, 26], [-4, 30], [8, 31]],
   [[26, 22], [34, 8], [36, -10]],
 ];

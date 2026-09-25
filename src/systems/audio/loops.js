@@ -168,6 +168,29 @@ function floodRush(engine, H, pos, gain) {
   return L;
 }
 
+// Flies over something dead: two detuned buzzing saws that swell and wander
+// as the swarm circles. Linear falloff so it's silent a few metres away.
+function flyBuzz(engine, H, pos, gain) {
+  const L = makeLoopHandle(engine, H, pos, gain, { model: 'linear', ref: 0.5, max: 6, rolloff: 1 });
+  const bp = H.F('bandpass', 420, 1.2);
+  const e = H.G(0.12);
+  bp.connect(e);
+  e.connect(L.bus);
+  const saws = [190, 203, 176].map((f) => {
+    const s = H.O('sawtooth', f);
+    s.connect(bp);
+    s.start();
+    L.add(s);
+    return s;
+  });
+  L.add(H.lfo(0.7, 0.06, e.gain), H.lfo(0.31, 90, bp.frequency));
+  L.every(400, () => {
+    for (const s of saws) s.frequency.setTargetAtTime(H.rnd(165, 225), H.now(), 0.12);
+  });
+  return L;
+}
+
 export const LOOPS = {
+  flyBuzz,
   bulbBuzz, candle, chantLoop, waterFlow, dripping, fleshBreath, mawBreath, phoneRing, floodRush,
 };

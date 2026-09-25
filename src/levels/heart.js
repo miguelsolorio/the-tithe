@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Mother } from '../entities/mother.js';
 import { buildArena, TUNNEL } from './heart/arena.js';
 import { setupFight } from './heart/fight.js';
+import { groundMist, dustMotes } from '../world/ambience/mist.js';
 
 // Level 7: the heart. Through the torn sphincter a short fleshy tunnel opens
 // into a round cavern of breathing flesh under giant ribs. The Mother Below
@@ -34,6 +35,9 @@ export default {
 
     const A = buildArena(L, game);
     dress(L);
+    // A low crimson haze over the arena floor and ash in the air.
+    groundMist(L, { color: 0x3a060a, opacity: 0.4, count: 40, radius: 16, size: [3, 6], height: [0.05, 0.7], drift: [0.04, 0.02] });
+    dustMotes(L, { color: 0xc89080, base: 0.06, radius: 6 });
     supplies(L);
 
     L.spawn('fromCaves', [0, 0, TUNNEL.z1 - 5.2], 0);

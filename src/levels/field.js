@@ -3,7 +3,10 @@ import { fbm2, makeRng } from '../core/rng.js';
 import { clamp, smoothstep } from '../core/utils.js';
 import { getMaterial, solid } from '../world/materials.js';
 import { buildCabinExterior } from './field/cabin.js';
-import { buildNature } from './field/nature.js';
+import { buildNature, SCARECROW, FENCES } from './field/nature.js';
+import { buildWolves } from './field/wolves.js';
+import { groundMist, dustMotes } from '../world/ambience/mist.js';
+import { crows } from '../world/ambience/critters.js';
 import { buildTreeLine } from './field/horizon.js';
 import { buildCar } from './field/car.js';
 
@@ -134,6 +137,7 @@ export default {
       L.spawn('start', [CABIN.x + 0.3, 0.3, DOOR_Z + 2.4], 0);
       buildDawn(L, game, sky, grass);
     }
+    fieldLife(L, dawn);
   },
   prepare() {},
 };
@@ -178,8 +182,16 @@ function buildDusk(L, game, sky, grass) {
     });
   }
 
+  buildWolves(L, { heightAt, getDark: () => dark });
+  // Mist rises off the field as the light goes: warm haze at dusk, cold grey at night.
+  const mist = groundMist(L, { color: 0x6a5040, opacity: 0.22, count: 60, radius: 22, size: [4, 8], height: [0.1, 1.1] });
+  const mistDusk = new THREE.Color(0x6a5040);
+  const mistNight = new THREE.Color(0x3a4452);
+
   L.onUpdate((dt, t, g) => {
     elapsed += dt;
+    mist.uniforms.uColor.value.copy(mistDusk).lerp(mistNight, dark);
+    mist.uniforms.uOpacity.value = 0.22 + dark * 0.4;
     const p = g.player.position;
     const dist = Math.hypot(p.x - CABIN.x, p.z - CABIN.z);
     // Darkness from time and from getting close to the cabin.
@@ -226,6 +238,26 @@ function buildDusk(L, game, sky, grass) {
   };
   // Candlelight in the window.
   L.light({ pos: [CABIN.x + 1.6, 1.6, CABIN.z + 1.4], color: 0xe08a2c, intensity: 0.8, distance: 5, flicker: 0.5 });
+}
+
+// Crows on the scarecrow's arms, the fence corners and pecking in the grass
+// (fewer once it's night), plus dawn mist after the escape.
+function fieldLife(L, dawn) {
+  const [sx, sz] = SCARECROW;
+  const sy = heightAt(sx, sz) + 1.99;
+  const perches = [
+    { pos: [sx - 0.7, sy, sz + 0.03], yaw: 2.6 },
+    { pos: [sx + 0.72, sy - 0.03, sz + 0.05], yaw: 0.4 },
+  ];
+  for (const [x, z] of [FENCES[0][1], FENCES[1][1]]) perches.push({ pos: [x, heightAt(x, z) + 1.15, z] });
+  for (const [x, z] of [[-3, 17], [9, 40], [-12, 28], [22, 50]]) perches.push({ pos: [x, heightAt(x, z), z] });
+  // The scarecrow's pair stays all night; the rest leave as it gets dark.
+  crows(L, perches.slice(0, 2));
+  crows(L, perches.slice(2), { enabled: (g) => dawn || g.scene.fog.density < 0.03 });
+  if (dawn) {
+    groundMist(L, { color: 0xb89a88, opacity: 0.2, count: 50, radius: 22, size: [4, 8], height: [0.1, 1.0], drift: [0.25, 0.05] });
+    dustMotes(L, { color: 0xffd0a0, count: 200, radius: 6, base: 0.12 });
+  }
 }
 
 // ---------- Dawn: the ending walk ----------
