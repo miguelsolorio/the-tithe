@@ -75,3 +75,10 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 - [x] Menus fit a sideways phone (scrollable screens, compact sizes, pause menu side by side); touch control lists and tutorial lines; HUD hidden behind menus on touch
 - [x] Phones render at 1× pixel ratio with a 512 px flashlight shadow
 - [ ] Play-test on a real iPhone and Android phone (so far tested only in emulated iPhone 13 portrait and landscape)
+
+### Atmosphere
+- [x] Shared ambience kit (`src/world/ambience/`): ground mist and flashlight-lit dust motes, corner cobwebs with spiders, floor debris, rats, moths, flies, crows; `dressLevel()` applies it per level (≤ 3 extra draw calls in view), halved on phones
+- [x] Field: wolves howling from the treeline and glowing eyes at night (`field/wolves.js`), crows, night mist; dawn mist
+- [x] Every level dressed: webs in all house/basement/cistern rooms (thick in the attic), debris per room, extra boxes and sheet-covered furniture on the ground floor, rats, moths, flies on the dead, teal mist on the water, crimson haze in the caves and heart, wolves heard through the house walls
+- [ ] Headphone listen-through: the howl, caw, rat and fly sounds were tuned without listening and may need a mix pass
+

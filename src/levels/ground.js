@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { HUSHED, hushUntilNear } from './proximityAudio.js';
 import { getMaterial, getDecalMaterial, solid } from '../world/materials.js';
 import { makeProp, PROP_NAMES } from '../world/props/index.js';
+import { dressLevel, distantHowls } from '../world/ambience/index.js';
 
 // Level 2: the ground floor. The cabin is impossibly large inside: a foyer, a
 // long hallway, a double-height stair hall, parlor, dining room, kitchen,
@@ -135,6 +136,7 @@ export default {
     pickups(L);
     enemies(L, game);
     if (!flood) hushUntilNear(L);
+    decay(L, P, flood);
 
     // The front door slams behind you the first time.
     L.onEnter((g, spawn) => {
@@ -251,6 +253,50 @@ function furnish(L, game, P) {
   L.prop('armchair', 11, -8.8, { face: 'w' });
   L.prop('lectern', 7.6, -10.2, { face: 'e' });
   L.prop('candle', 8.6, -4.6, { y: topOf(ld) });
+}
+
+// Neglect: webs in every corner, debris on the floors, extra junk against the
+// walls, rats, moths at the bulbs, flies over the rotten dinner, dust in the
+// torch beam, a low haze in the chapel and wolves heard through the walls.
+function decay(L, P, flood) {
+  L.prop('boxes', -2.3, -11.2, { face: 's' });
+  L.prop('sheetCovered', -2.4, -4.2, { face: 'w' });
+  L.prop('boxes', -10.3, -3.8, { face: 'e' });
+  L.prop('bloodBucket', -16.8, -9.2, {});
+  L.prop('crate', -16.7, -11.3, { rotY: 0.2 });
+  L.prop('boxes', -4.3, 8.3, { face: 'n' });
+  L.prop('sheetCovered', 3.6, 7.2, { face: 'w' });
+  L.prop('crate', 10.7, 5.6, { rotY: 0.5 });
+  L.prop('chairBroken', 10.2, -0.3, { rotY: 2.4 });
+  L.prop('skull', 16.2, -9.3, {});
+  const out = dressLevel(L, P, {
+    webs: { ceil: 0.8, floor: 0.35 },
+    spans: [[[1.6, 2.95, -2.1], [4.4, 2.95, -2.1]], [[-14, 3.05, -2.9], [-12.4, 3.05, -1.1]]],
+    clutter: {
+      F: [['paper', 4], ['plaster', 3]],
+      H: [['paper', 5], ['plaster', 4]],
+      D: [['glass', 5], ['rags', 2], ['plaster', 2]],
+      K: [['glass', 6], ['rags', 3], ['paper', 2]],
+      L: [['books', 10], ['paper', 8]],
+      P: [['paper', 4], ['glass', 3], ['plaster', 3]],
+      S: [['paper', 10], ['books', 4]],
+      C: [['stubs', 8, 1.2], ['bones', 5]],
+      G: [['plaster', 3]],
+      c: [['plaster', 4]],
+      e: [['rags', 2]],
+    },
+    rats: { rooms: 'KDPH', n: 4 },
+    moths: ['bulb'],
+    flies: flood ? [] : [[-5.5, 0.9, -7.3], [-16.8, 0.3, -9.2]],
+    motes: { color: 0xd8ccb0 },
+    mist: { color: 0x2a1810, opacity: 0.4, count: 26, radius: 8, size: [2, 4], height: [0.05, 0.6] },
+  });
+  // The haze only lives in the chapel.
+  L.onUpdate((dt, t, g) => {
+    const p = g.player.position;
+    out.mist.enabled = p.x > 13 && p.x < 22 && p.z > -11 && p.z < -0.5;
+  });
+  if (!flood) distantHowls(L);
 }
 
 function blood(L) {

@@ -8,10 +8,10 @@ All audio is procedural Web Audio — no asset files. Music beds mirror the visu
 
 | Zone | Bed | Zone SFX |
 |---|---|---|
-| Field at dusk | Low drone + distant bell toll (Liturgy bell, far/quiet) | footsteps on grass, cabin door creak |
-| Ground floor, upstairs | **Liturgy**: organ drone (D/A/G# cluster, tremolo), formant choir pad, bell every ~9 s, chant when acolytes near | bell toll, cult chant, acolyte scream, revolver (chapel reverb), sigil ignite, bulb flicker buzz (borrowed from Dead channel) |
-| Basement, cistern | **Undertow**: lowpassed brown-noise waves, 41/55 Hz sub beating, whale groans, random drips | drip, wading splash, drowned gurgle, lamprey shriek, shotgun (muffled when submerged) |
-| Flesh caves | **Viscera**: 58 bpm heartbeat, breathing bandpassed noise, wet 36.7 Hz saw pulse, random squelches | squelch, bone crack, skinless scream, wall maw chomp, hound snarl |
+| Field at dusk | Low drone + distant bell toll (Liturgy bell, far/quiet) | footsteps on grass, cabin door creak, crow caws and wing flaps, wolf howls from the treeline (more often and closer as night falls) |
+| Ground floor, upstairs | **Liturgy**: organ drone (D/A/G# cluster, tremolo), formant choir pad, bell every ~9 s, chant when acolytes near | bell toll, cult chant, acolyte scream, revolver (chapel reverb), sigil ignite, bulb flicker buzz (borrowed from Dead channel), rat squeak and skitter, fly buzz over the dead, a muffled wolf howl through the walls every minute or two |
+| Basement, cistern | **Undertow**: lowpassed brown-noise waves, 41/55 Hz sub beating, whale groans, random drips | drip, wading splash, drowned gurgle, lamprey shriek, shotgun (muffled when submerged), rat squeak and skitter, fly buzz |
+| Flesh caves | **Viscera**: 58 bpm heartbeat, breathing bandpassed noise, wet 36.7 Hz saw pulse, random squelches | squelch, bone crack, skinless scream, wall maw chomp, hound snarl, fly buzz over the dead and the pods |
 | Encounters (any zone) | **Dread strings** layer on top | braam on enemy spotted, violin screech on jump scare, heartbeat rush at low health, stinger, door creak |
 | Boss (the heart) | Choir + heartbeat + submerged drone layered; heartbeat tempo rises as boss HP drops | — |
 

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GeoBuffer, dataTexture, normalTexture, tfbm, norm3, cross3, perp3 } from '../../world/trees.js';
+import { webTexture } from '../../world/ambience/webs.js';
 
 // Geometry and material kit for the field set dressing (cabin, fences, well,
 // scarecrow...). Boards, bricks, shingles and leaves are written straight into
@@ -372,56 +373,6 @@ export const LEAF_CELLS = [0, 1, 2, 3].map((k) => {
   return [u0 + 0.01, v1 - 0.5 + 0.01, u0 + 0.49, v1 - 0.01];
 });
 
-// Corner cobweb: threads fan out from the bottom-left corner (uv 0, 0).
-function webTexture() {
-  return canvasTex(256, 256, (ctx) => {
-    let s = 7;
-    const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-    const ox = 2;
-    const oy = 254;
-    const spokes = [];
-    for (let a = 0.04; a < Math.PI / 2 - 0.02; a += 0.12 + r() * 0.12) spokes.push(a);
-    ctx.lineCap = 'round';
-    for (const a of spokes) {
-      ctx.strokeStyle = `rgba(235,235,230,${0.5 + r() * 0.4})`;
-      ctx.lineWidth = 1 + r() * 0.6;
-      ctx.beginPath();
-      ctx.moveTo(ox, oy);
-      const len = 180 + r() * 70;
-      ctx.lineTo(ox + Math.cos(a) * len, oy - Math.sin(a) * len);
-      ctx.stroke();
-    }
-    // Sagging spiral between the spokes.
-    for (let rad = 16; rad < 230; rad += 9 + r() * 9) {
-      ctx.strokeStyle = `rgba(230,230,225,${0.3 + r() * 0.4})`;
-      ctx.lineWidth = 0.8 + r() * 0.5;
-      ctx.beginPath();
-      for (let i = 0; i < spokes.length - 1; i++) {
-        if (r() < 0.12) continue;
-        const a0 = spokes[i];
-        const a1 = spokes[i + 1];
-        const x0 = ox + Math.cos(a0) * rad;
-        const y0 = oy - Math.sin(a0) * rad;
-        const x1 = ox + Math.cos(a1) * rad;
-        const y1 = oy - Math.sin(a1) * rad;
-        const am = (a0 + a1) / 2;
-        ctx.moveTo(x0, y0);
-        ctx.quadraticCurveTo(ox + Math.cos(am) * rad * 0.9, oy - Math.sin(am) * rad * 0.9 + 3, x1, y1);
-      }
-      ctx.stroke();
-    }
-    // A few broken strands hanging loose.
-    for (let i = 0; i < 5; i++) {
-      const x = 30 + r() * 180;
-      const y = 254 - r() * 180;
-      ctx.strokeStyle = 'rgba(225,225,220,0.45)';
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.quadraticCurveTo(x + 6, y + 20, x + 2, y + 30 + r() * 30);
-      ctx.stroke();
-    }
-  });
-}
 
 // ---------- Materials (built once, shared by the dusk and dawn builds) ----------
 let MATS = null;
