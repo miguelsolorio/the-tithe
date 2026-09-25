@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>The Tithe: sigil</title>
+    <!--
+      Source for the app icon and the social preview. `node branding/render.mjs`
+      renders it to public/:  ?kind=icon (1024 × 1024), ?kind=maskable (the seal
+      inside the manifest's safe zone) and ?kind=og (1200 × 630).
+    -->
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&display=block" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #050303;
+        --bone: #d8ccb0;
+        --muted: #9a8c80;
+        --blood-bright: #c0303a;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
+      }
+      .frame {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        display: none;
+      }
+      [data-kind='icon'] .frame.square,
+      [data-kind='maskable'] .frame.square,
+      [data-kind='og'] .frame.og {
+        display: block;
+      }
+      svg.fill {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .og .copy {
+        position: absolute;
+        left: 648px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--bone);
+      }
+      .og h1 {
+        margin: 0;
+        font-family: 'IM Fell English SC', serif;
+        font-weight: 400;
+        font-size: 98px;
+        line-height: 0.95;
+        letter-spacing: 0.04em;
+        text-shadow: 0 0 24px rgba(192, 48, 58, 0.25);
+      }
+      .og .orn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 22px 0 20px 4px;
+      }
+      .og .orn i {
+        display: block;
+        height: 1px;
+        width: 70px;
+        background: var(--blood-bright);
+        opacity: 0.8;
+      }
+      .og .orn b {
+        width: 9px;
+        height: 9px;
+        transform: rotate(45deg);
+        background: var(--blood-bright);
+      }
+      .og .tag {
+        margin: 0 0 0 4px;
+        font-family: 'IM Fell English', serif;
+        font-style: italic;
+        font-size: 31px;
+        line-height: 1.3;
+        color: #d9cdb9;
+      }
+      .og .kicker {
+        margin: 18px 0 0 5px;
+        font-family: 'IM Fell English SC', serif;
+        font-size: 19px;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame square"><svg class="fill" viewBox="0 0 1024 1024" id="square"></svg></div>
+    <div class="frame og">
+      <svg class="fill" viewBox="0 0 1200 630" id="og"></svg>
+      <div class="copy">
+        <h1>The Tithe</h1>
+        <div class="orn"><i></i><b></b></div>
+        <p class="tag">Your sister is this year’s tithe.</p>
+        <p class="kicker">A first-person horror game</p>
+      </div>
+    </div>
+
+    <script>
+      const kind = new URLSearchParams(location.search).get('kind') || 'icon';
+      document.documentElement.dataset.kind = kind;
+
+      // Palette from docs/visual-direction.md and the UI blood reds.
+      const P = { bg: '#050303', dried: '#3a060a', bloodBright: '#c0303a' };
+
+      // The seal: double ring, inverted triangle (the drowned house, the way
+      // down), a horned circle (the Mother Below) and the knife that binds her.
+      const lines = `
+        <circle cx="512" cy="512" r="404" stroke-width="30"/>
+        <circle cx="512" cy="512" r="356" stroke-width="10"/>
+        <path d="M512 868 L203.7 334 L820.3 334 Z" stroke-width="22" stroke-linejoin="round"/>
+        <circle cx="512" cy="610" r="80" stroke-width="22"/>
+        <path d="M512 250 L512 470" stroke-width="16" stroke-linecap="round"/>
+        <path d="M462 236 L562 236" stroke-width="18" stroke-linecap="round"/>
+        <circle cx="512" cy="186" r="15" stroke-width="12"/>`;
+      const horn = 'M442 572 C394 528 350 456 356 372 C358 350 366 334 382 318 C378 352 384 420 418 470 C434 494 452 514 478 530 Z';
+      const horns = `<path d="${horn}"/><path d="${horn}" transform="translate(1024 0) scale(-1 1)"/>`;
+      const blade = 'M500 250 L524 250 L512 486 Z';
+      const core = `
+        <g fill="none" stroke="#e36a4f" opacity="0.5">
+          <circle cx="512" cy="512" r="404" stroke-width="9"/>
+          <path d="M512 868 L203.7 334 L820.3 334 Z" stroke-width="6" stroke-linejoin="round"/>
+          <circle cx="512" cy="610" r="80" stroke-width="6"/>
+        </g>`;
+
+      const defs = (id) => `
+        <radialGradient id="${id}-bg" cx="0.5" cy="0.5" r="0.62">
+          <stop offset="0" stop-color="${P.dried}" stop-opacity="0.95"/>
+          <stop offset="0.55" stop-color="#180305" stop-opacity="0.9"/>
+          <stop offset="1" stop-color="${P.bg}"/>
+        </radialGradient>
+        <filter id="${id}-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="20"/></filter>
+        <filter id="${id}-ink" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="G" result="d"/>
+          <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="1" seed="9" result="f"/>
+          <feDisplacementMap in="d" in2="f" scale="3.5" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+        <filter id="${id}-stain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.009" numOctaves="4" seed="21"/>
+          <feColorMatrix values="0 0 0 0 0.16  0 0 0 0 0.02  0 0 0 0 0.02  1.5 0 0 0 -0.6"/>
+        </filter>`;
+
+      // Glow, painted body and hot core passes of the same geometry.
+      const seal = (id) => `
+        <g filter="url(#${id}-glow)" opacity="0.55"><g fill="none" stroke="${P.bloodBright}">${lines}</g><g fill="${P.bloodBright}">${horns}</g></g>
+        <g filter="url(#${id}-ink)">
+          <g fill="none" stroke="#a51b24">${lines}</g>
+          <g fill="#a51b24">${horns}<path d="${blade}"/></g>
+        </g>
+        <g filter="url(#${id}-ink)">${core}</g>`;
+
+      if (kind === 'og') {
+        const s = 520 / 1024;
+        document.getElementById('og').innerHTML = `
+          <defs>${defs('o')}
+            <radialGradient id="o-left" cx="330" cy="315" r="520" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="${P.dried}" stop-opacity="0.9"/>
+              <stop offset="0.6" stop-color="#140204" stop-opacity="0.6"/>
+              <stop offset="1" stop-color="${P.bg}" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="1200" height="630" fill="${P.bg}"/>
+          <rect width="1200" height="630" fill="url(#o-left)"/>
+          <rect width="1200" height="630" filter="url(#o-stain)" opacity="0.4"/>
+          <g fill="none" stroke="${P.bloodBright}" opacity="0.12">
+            <circle cx="330" cy="315" r="318" stroke-width="2"/>
+            <circle cx="330" cy="315" r="420" stroke-width="1"/>
+            <circle cx="330" cy="315" r="560" stroke-width="1"/>
+          </g>
+          <g transform="translate(${330 - 512 * s} ${315 - 512 * s}) scale(${s})">${seal('o')}</g>`;
+      } else {
+        // The maskable icon keeps the whole seal inside the central 80% circle.
+        const scale = kind === 'maskable' ? 0.78 : 0.96;
+        document.getElementById('square').innerHTML = `
+          <defs>${defs('i')}</defs>
+          <rect width="1024" height="1024" fill="${P.bg}"/>
+          <rect width="1024" height="1024" fill="url(#i-bg)"/>
+          <rect width="1024" height="1024" filter="url(#i-stain)" opacity="0.45"/>
+          <g transform="translate(512 512) scale(${scale}) translate(-512 -512)">${seal('i')}</g>`;
+      }
+
+      // Film grain, like the game's post-FX (seeded, so renders are stable).
+      (() => {
+        const w = innerWidth, h = innerHeight;
+        const cv = document.createElement('canvas');
+        cv.width = w;
+        cv.height = h;
+        Object.assign(cv.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', mixBlendMode: 'overlay', opacity: 0.12 });
+        const g = cv.getContext('2d');
+        const img = g.createImageData(w, h);
+        let a = 7;
+        const rnd = () => {
+          a = (a + 0x6d2b79f5) >>> 0;
+          let t = Math.imul(a ^ (a >>> 15), a | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+        for (let i = 0; i < img.data.length; i += 4) {
+          img.data[i] = img.data[i + 1] = img.data[i + 2] = 128 + (rnd() + rnd() + rnd() - 1.5) * 170;
+          img.data[i + 3] = 255;
+        }
+        g.putImageData(img, 0, 0);
+        document.querySelector(kind === 'og' ? '.frame.og' : '.frame.square').appendChild(cv);
+      })();
+    </script>
+  </body>
+</html>

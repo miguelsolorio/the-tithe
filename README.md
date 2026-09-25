@@ -1,8 +1,29 @@
 # The Tithe
 
-A first-person horror game built with Three.js and Vite. Every model, texture and sound is generated in code: there are no asset files.
+![The Tithe: a glowing blood-red sigil beside the title. Your sister is this year's tithe.](public/og.png)
+
+A first-person horror game built with Three.js and Vite. **[Play it in your browser](https://miguelsolorio.github.io/the-tithe/)** (headphones recommended).
 
 A year after your sister vanished, her phone pings from a field. At dusk you find a small cabin that is impossibly large inside. A cult drowned the lower house to keep a demon, the Mother Below, asleep, and your sister is this year's tithe. Go down through the house, kill the Mother Below, cut your sister free, and get out before the house floods.
+
+Every model, texture and sound is generated in code. The only image files are the icons, the social preview and the screenshots below.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/field.jpg" alt="The cabin in the woods at dusk, candlelight in its windows" /><br /><sub>The field at dusk</sub></td>
+    <td width="50%"><img src="docs/screenshots/chapel.jpg" alt="An acolyte in an antler mask holding a candle in the blood chapel" /><br /><sub>The blood chapel behind the library</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/basement.jpg" alt="A long feast table under a candle chandelier in the flooded basement" /><br /><sub>The drowned dining room</sub></td>
+    <td><img src="docs/screenshots/cistern.jpg" alt="The teal baptism pool in the cistern tunnels, ringed by candles" /><br /><sub>The baptism pool in the cisterns</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/caves.jpg" alt="Red flesh walls and glowing pods in the womb" /><br /><sub>The womb, deep in the flesh caves</sub></td>
+    <td><img src="docs/screenshots/heart.jpg" alt="The Mother Below rising above a red sigil circle" /><br /><sub>The Mother Below</sub></td>
+  </tr>
+</table>
 
 ## Run it
 
@@ -82,4 +103,6 @@ Choices made where the brief left room:
 - `src/player/`: first-person controller and weapons
 - `src/systems/`: audio, post-processing, HUD helpers, debug
 - `tools/`: standalone viewers for materials, props, creatures and sounds (`npm run dev`, then open e.g. http://localhost:5199/tools/creatures.html)
-- `docs/`: visual and audio direction, level API
+- `docs/`: visual and audio direction, level API, screenshots
+- `branding/`: the sigil icon and social preview (`sigil.html`) and `render.mjs`, which renders them into `public/` (`node branding/render.mjs`) and retakes the screenshots from a running dev server (`node branding/render.mjs shots`)
+- `public/`: favicon, app icons, web manifest and the social preview image

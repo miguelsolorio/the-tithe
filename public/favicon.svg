@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The sigil (branding/sigil.html), simplified for 16–48 px: one ring, heavier strokes. -->
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.5" r="0.62">
+      <stop offset="0" stop-color="#3a060a" />
+      <stop offset="1" stop-color="#070304" />
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" />
+  <g fill="none" stroke="#c0303a" stroke-linejoin="round" stroke-linecap="round">
+    <g stroke-opacity="0.3" stroke-width="7">
+      <circle cx="32" cy="32" r="24.5" />
+      <path d="M32 53.5 13.4 21.3h37.2z" />
+    </g>
+    <g stroke="#dc3a43">
+      <circle cx="32" cy="32" r="24.5" stroke-width="3.6" />
+      <path d="M32 53.5 13.4 21.3h37.2z" stroke-width="3.2" />
+      <circle cx="32" cy="38.1" r="5" stroke-width="2.6" />
+      <path d="M29.2 14.8h5.6" stroke-width="1.8" />
+    </g>
+  </g>
+  <g fill="#dc3a43">
+    <path d="M31.1 15.6h1.8L32 30.4z" />
+    <circle cx="32" cy="11.8" r="1.3" />
+    <path id="horn" d="M27.6 35.8c-3-2.8-5.7-7.3-5.4-12.5.1-1.4.6-2.4 1.6-3.4-.2 2.1.1 6.4 2.3 9.5 1 1.5 2.1 2.7 3.8 3.7z" />
+    <use href="#horn" transform="matrix(-1 0 0 1 64 0)" />
+  </g>
+</svg>

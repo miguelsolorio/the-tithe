@@ -57,3 +57,8 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 - [x] README with controls, debug commands and defaults
 - [x] Doors: fixed doors in east/west walls rendering inside the wall; real doors on every regular doorway (`5d672a0`)
 - [x] Field start: real forest ring with the cabin's trees, a realistic car (`a83e8a2`)
+
+### Branding
+- [x] Five icon + social image directions; picked **Sigil** (blood-red seal, IM Fell English type), the other four removed
+- [x] Wired in: SVG favicon + `favicon.ico`, apple-touch-icon, manifest icons (with maskable), `og:` / `twitter:` tags in `index.html` (source `branding/sigil.html`, `node branding/render.mjs`)
+- [x] README: hero image, play link, six in-game screenshots (`node branding/render.mjs shots`)
