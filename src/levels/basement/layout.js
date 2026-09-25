@@ -65,16 +65,16 @@ export const ROOM_DEFS = {
 };
 
 export const DOORS = [
-  { at: [19, 13], side: 'w' }, // hall - storage
-  { at: [19, 22], side: 'w' }, // hall - laundry
-  { at: [15, 17], side: 's' }, // storage - laundry
-  { at: [11, 14], side: 'w' }, // storage - boiler room
-  { at: [6, 18], side: 's' }, // boiler room - coal room
+  { at: [19, 13], side: 'w', leaf: true, id: 'bsm_storage', material: 'woodRotten' }, // hall - storage
+  { at: [19, 22], side: 'w', leaf: true, id: 'bsm_laundry', material: 'woodRotten', open: true }, // hall - laundry (left open: the drowned rises right at this threshold)
+  { at: [15, 17], side: 's', leaf: true, id: 'bsm_storageLaundry', material: 'woodRotten' }, // storage - laundry
+  { at: [11, 14], side: 'w', leaf: true, id: 'bsm_boiler', material: 'rust' }, // storage - boiler room
+  { at: [6, 18], side: 's', leaf: true, id: 'bsm_coal', material: 'rust', open: true }, // boiler room - coal room (left open: the lamprey's ambush needs a clear lunge)
   { at: [22, 15], side: 'e', len: 2 }, // hall - east passage
   { at: [26, 15], side: 'e', len: 2 }, // east passage - wine cellar
   { at: [36, 15], side: 'e', len: 2, h: 2.4 }, // wine cellar - dining room
   { at: [20, 27], side: 's', len: 2 }, // hall - pump room
-  { at: [21, 1], side: 'e' }, // landing - kitchen
+  { at: [21, 1], side: 'e', leaf: true, id: 'bsm_kitchenGlimpse', material: 'woodRotten', open: true }, // landing - kitchen glimpse (always open, matches the lit doorway)
 ];
 
 export const OPEN = ['sh', 'su', 'oP'];

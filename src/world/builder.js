@@ -422,8 +422,16 @@ export class LevelBuilder {
     const hx = axis === 'x' ? x + (width / 2) * hinge : x;
     const hz = axis === 'z' ? z + (width / 2) * hinge : z;
     pivot.position.set(hx, y, hz);
-    pivot.rotation.y = axis === 'x' ? 0 : Math.PI / 2;
+    // The panel runs along the pivot's local x (away from the hinge). Doors
+    // spanning z turn by -90° so it lies in the opening, not inside the wall.
+    const base = axis === 'x' ? 0 : -Math.PI / 2;
+    pivot.rotation.y = base;
     this.group.add(pivot);
+    // Where the free edge ends up for a given swing angle.
+    const freeEdge = (ang) => {
+      const a = base + ang;
+      return { x: hx + Math.cos(a) * -hinge * width, z: hz - Math.sin(a) * -hinge * width };
+    };
 
     const half = width / 2;
     const col = axis === 'x'
@@ -439,8 +447,9 @@ export class LevelBuilder {
       // Swing away from whoever opened it.
       let sgn = 1;
       if (fromPos) {
-        const d = axis === 'x' ? fromPos.z - z : fromPos.x - x;
-        sgn = (d > 0 ? -1 : 1) * (axis === 'x' ? 1 : -1) * -hinge;
+        const a = freeEdge(1.7);
+        const b = freeEdge(-1.7);
+        sgn = Math.hypot(a.x - fromPos.x, a.z - fromPos.z) >= Math.hypot(b.x - fromPos.x, b.z - fromPos.z) ? 1 : -1;
       }
       door.target = 1.7 * sgn;
       game.audio.play('doorOpen', { pos: new THREE.Vector3(x, y + 1, z) });
@@ -473,14 +482,14 @@ export class LevelBuilder {
       if (door.angle !== door.target) {
         const d = door.target - door.angle;
         door.angle += Math.sign(d) * Math.min(Math.abs(d), dt * 2.6);
-        pivot.rotation.y = (axis === 'x' ? 0 : Math.PI / 2) + door.angle;
+        pivot.rotation.y = base + door.angle;
       }
     });
     if (spec.open || (id && this.game.flags.has(`door:${id}`))) {
       door.open = true;
       col.enabled = false;
       door.angle = door.target = 1.6 * (spec.openSign ?? 1);
-      pivot.rotation.y = (axis === 'x' ? 0 : Math.PI / 2) + door.angle;
+      pivot.rotation.y = base + door.angle;
     }
     return door;
   }

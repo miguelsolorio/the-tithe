@@ -95,7 +95,7 @@ export default {
         { at: [19, 10], side: 'n', len: 6, h: 3.0 },
         { at: [13, 10], side: 'n', leaf: true, id: 'g_dining' },
         { at: [5, 10], side: 'n', leaf: true, id: 'g_kitchen', open: true },
-        { at: [9, 5], side: 'e' },
+        { at: [9, 5], side: 'e', leaf: true, id: 'g_kitchenDining', material: 'woodDark' },
         { at: [29, 10], side: 'n', leaf: true, id: 'g_library' },
         { at: [8, 11], side: 's', len: 2, h: 2.4 },
         { at: [27, 11], side: 's', leaf: true, id: 'g_study2' },
