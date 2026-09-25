@@ -246,7 +246,9 @@ export function closetAndShrine(U) {
       if (t >= 1) t = 2;
     });
   }
-  L.crawl({ min: [4.75, -0.5, 2.25], max: [5.75, 2.0, 6.35], eye: 0.5 });
+  // Reaches well into the shrine: standing, the lintel stops you at z 6.4, so
+  // the volume must start past that or you can never crouch back out.
+  L.crawl({ min: [4.75, -0.5, 2.25], max: [5.75, 2.0, 6.9], eye: 0.5 });
   // The crawlway: scratches, a stub of candle, someone's bones.
   U.prop('skull', 5.05, 4.6, { rotY: 1.2 });
   U.prop('candle', 5.5, 3.6, { args: { lit: false, h: 0.06 } });
