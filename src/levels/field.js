@@ -4,6 +4,8 @@ import { clamp, smoothstep } from '../core/utils.js';
 import { getMaterial, solid } from '../world/materials.js';
 import { buildCabinExterior } from './field/cabin.js';
 import { buildNature } from './field/nature.js';
+import { buildTreeLine } from './field/horizon.js';
+import { buildCar } from './field/car.js';
 
 // Level 1: the field at dusk (tutorial). The sky darkens in real time and as
 // you approach the small cabin. Her phone rings in the grass; taking it opens
@@ -116,7 +118,7 @@ export default {
     L.group.add(grass.mesh);
 
     // ---------- Tree line and dead trees ----------
-    L.group.add(makeTreeLine(rng, heightAt));
+    buildTreeLine({ L, rng, heightAt });
 
     // ---------- Cabin (small on the outside) and the woods around it ----------
     buildCabinExterior(L, { ...CABIN, base: 0.42, dawn, heightAt });
@@ -124,7 +126,7 @@ export default {
 
     if (!dawn) {
       // Your car at the end of the track.
-      car(L, START[0] + 3.2, START[1] + 3, heightAt);
+      buildCar(L, START[0] + 3.2, START[1] + 3, heightAt);
       L.spawn('start', [START[0], heightAt(START[0], START[1]), START[1]], Math.atan2(START[0] - CABIN.x, START[1] - CABIN.z) - 0.1);
       buildDusk(L, game, sky, grass);
     } else {
@@ -394,59 +396,5 @@ function makeGrass(rng, heightAt) {
   mesh.frustumCulled = false;
   mesh.receiveShadow = true;
   return { mesh, material: mat };
-}
-
-function makeTreeLine(rng, heightAt) {
-  const group = new THREE.Group();
-  const cone = new THREE.ConeGeometry(2.6, 11, 7).translate(0, 7.5, 0);
-  const trunk = new THREE.CylinderGeometry(0.3, 0.45, 3, 6).translate(0, 1.5, 0);
-  const count = 260;
-  const cm = new THREE.InstancedMesh(cone, solid(0x0c100c, { roughness: 1 }), count);
-  const tm = new THREE.InstancedMesh(trunk, solid(0x1a120c, { roughness: 1 }), count);
-  const m = new THREE.Matrix4();
-  const q = new THREE.Quaternion();
-  const s = new THREE.Vector3();
-  const p = new THREE.Vector3();
-  for (let i = 0; i < count; i++) {
-    const a = rng() * Math.PI * 2;
-    const r = 96 + rng() * 26;
-    const x = Math.cos(a) * r;
-    const z = Math.sin(a) * r;
-    p.set(x, heightAt(Math.max(-129, Math.min(129, x)), Math.max(-129, Math.min(129, z))) - 0.5, z);
-    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rng() * 6);
-    const sc = 0.8 + rng() * 0.9;
-    s.set(sc, sc * (0.8 + rng() * 0.5), sc);
-    m.compose(p, q, s);
-    cm.setMatrixAt(i, m);
-    tm.setMatrixAt(i, m);
-  }
-  group.add(cm, tm);
-  return group;
-}
-
-function car(L, x, z, heightAt) {
-  const y = heightAt(x, z);
-  const paint = solid(0x3a1416, { roughness: 0.45, metalness: 0.5 });
-  const dark = solid(0x0a0a0c, { roughness: 0.3, metalness: 0.3 });
-  const rot = 0.25;
-  const g = new THREE.Group();
-  const add = (geo, mat) => {
-    const m = new THREE.Mesh(geo, mat);
-    g.add(m);
-    return m;
-  };
-  add(new THREE.BoxGeometry(1.8, 0.62, 4.4), paint).position.set(0, 0.62, 0);
-  add(new THREE.BoxGeometry(1.6, 0.55, 2.1), dark).position.set(0, 1.2, -0.2);
-  for (const [wx, wz] of [[-0.85, 1.35], [0.85, 1.35], [-0.85, -1.35], [0.85, -1.35]]) {
-    const w = add(new THREE.CylinderGeometry(0.34, 0.34, 0.24, 14).rotateZ(Math.PI / 2), dark);
-    w.position.set(wx, 0.34, wz);
-  }
-  const door = add(new THREE.BoxGeometry(0.06, 0.9, 1.1), paint);
-  door.position.set(-1.2, 0.9, -0.1);
-  door.rotation.y = -0.9;
-  for (const s of [-0.6, 0.6]) add(new THREE.BoxGeometry(0.3, 0.12, 0.05), solid(0xfff0c0, { emissive: 0xffe0a0, emissiveIntensity: 0.4 })).position.set(s, 0.72, -2.21);
-  g.position.set(x, y, z);
-  g.rotation.y = rot;
-  L.mesh(g, { static: true, collider: [{ min: [-0.95, 0, -2.25], max: [0.95, 1.5, 2.25] }] });
 }
 

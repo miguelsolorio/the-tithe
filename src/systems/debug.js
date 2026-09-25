@@ -78,7 +78,10 @@ export function installDebug(game) {
   // Scripted play-testing helpers.
   game.place = (x, z, lookX = x, lookZ = z - 1, pitch = 0, y = null) => {
     const p = game.player;
-    const gy = y ?? game.levels.current.physics.groundAt(x, z, p.position.y + 1.5).y;
+    const ph = game.levels.current.physics;
+    // Prefer the floor near the current height; fall back to the highest one (hills, upper floors).
+    let gy = y ?? ph.groundAt(x, z, p.position.y + 1.5).y;
+    if (gy === -Infinity) gy = ph.groundAt(x, z, 1e4).y;
     p.position.set(x, gy === -Infinity ? p.position.y : gy, z);
     p.yaw = Math.atan2(-(lookX - x), -(lookZ - z));
     p.pitch = pitch;
