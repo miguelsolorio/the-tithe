@@ -6,7 +6,13 @@ A first-person horror game built with Three.js and Vite. **[Play it in your brow
 
 A year after your sister vanished, her phone pings from a field. At dusk you find a small cabin that is impossibly large inside. A cult drowned the lower house to keep a demon, the Mother Below, asleep, and your sister is this year's tithe. Go down through the house, kill the Mother Below, cut your sister free, and get out before the house floods.
 
-Every model, texture and sound is generated in code. The only image files are the icons, the social preview and the screenshots below.
+Every model, texture and sound is generated in code. The only media files are the icons, the social preview, the demo video and the screenshots below.
+
+## Demo
+
+[![Watch the 45-second gameplay demo](docs/demo/poster.jpg)](docs/demo/demo.mp4)
+
+A 45-second look at the field, the house and the depths below (no final-boss spoilers). **[Watch the demo](docs/demo/demo.mp4)** (with sound).
 
 ## Screenshots
 
@@ -33,6 +39,8 @@ npm run dev
 ```
 
 Open http://localhost:5199 and click **Begin**. Headphones recommended.
+
+`npm run demo` re-records the README demo video from a running dev server (see `branding/record-demo.mjs`; needs Chrome and ffmpeg).
 
 `npm run dev -- --mode stable` serves the same game without hot reload (the `the-tithe-stable` entry in `.claude/launch.json`, port 5299), which is handy for play-testing while editing.
 
@@ -116,5 +124,5 @@ Choices made where the brief left room:
 - `src/systems/`: audio, post-processing, HUD helpers, debug
 - `tools/`: standalone viewers for materials, props, creatures and sounds (`npm run dev`, then open e.g. http://localhost:5199/tools/creatures.html)
 - `docs/`: visual and audio direction, level API, screenshots
-- `branding/`: the sigil icon and social preview (`sigil.html`) and `render.mjs`, which renders them into `public/` (`node branding/render.mjs`) and retakes the screenshots from a running dev server (`node branding/render.mjs shots`)
+- `branding/`: the sigil icon and social preview (`sigil.html`) and `render.mjs`, which renders them into `public/` (`node branding/render.mjs`) and retakes the screenshots from a running dev server (`node branding/render.mjs shots`); `record-demo.mjs` records the 45-second demo in `docs/demo/` (`npm run demo`); `cdp.mjs` is the headless Chrome driver both share
 - `public/`: favicon, app icons, web manifest and the social preview image

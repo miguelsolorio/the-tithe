@@ -1,24 +1,20 @@
 // Renders the icon set, the social preview and the README screenshots with
-// headless Chrome over the DevTools protocol (no dependencies).
+// headless Chrome over the DevTools protocol (no dependencies, see cdp.mjs).
 //
 //   node branding/render.mjs          public/: icons, favicon.ico, og.png (from branding/sigil.html)
 //   node branding/render.mjs shots    docs/screenshots/ from the running game (`npm run dev` first;
 //                                     GAME_URL=http://localhost:5299 for the stable server)
 //   node branding/render.mjs shots heart cistern   only these shots
-import { spawn } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { evaluate, sleep, withBrowser } from './cdp.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
 const PUBLIC = resolve(ROOT, 'public');
 const SHOTS = resolve(ROOT, 'docs/screenshots');
-const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const GAME = process.env.GAME_URL || 'http://localhost:5199';
-const PORT = 9339;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Each shot starts a debug run at `level`, then `setup` (run in the page)
 // places the camera. The HUD is hidden; `arms: false` hides the weapon too.
@@ -61,78 +57,6 @@ const SHOT_LIST = [
     setup: `game.player.flashOn = true; game.place(0, 10, 0, 0, 0.28); await game.wait(7000);`,
   },
 ];
-
-async function withBrowser(fn) {
-  const profile = resolve(tmpdir(), 'tithe-branding-chrome');
-  rmSync(profile, { recursive: true, force: true });
-  const chrome = spawn(
-    CHROME,
-    [
-      '--headless=new',
-      `--remote-debugging-port=${PORT}`,
-      `--user-data-dir=${profile}`,
-      '--hide-scrollbars',
-      '--no-first-run',
-      '--no-default-browser-check',
-      '--mute-audio',
-      '--autoplay-policy=no-user-gesture-required',
-      'about:blank',
-    ],
-    { stdio: 'ignore' },
-  );
-  let page;
-  for (let i = 0; i < 100 && !page; i++) {
-    try {
-      const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
-      page = list.find((t) => t.type === 'page');
-    } catch {
-      await sleep(100);
-    }
-  }
-  if (!page) throw new Error('Chrome did not start');
-  const ws = new WebSocket(page.webSocketDebuggerUrl);
-  await new Promise((r, j) => ((ws.onopen = r), (ws.onerror = j)));
-  let seq = 0;
-  const pending = new Map();
-  const listeners = new Set();
-  ws.onmessage = (ev) => {
-    const msg = JSON.parse(ev.data);
-    if (msg.id && pending.has(msg.id)) {
-      const { res, rej } = pending.get(msg.id);
-      pending.delete(msg.id);
-      msg.error ? rej(new Error(msg.error.message)) : res(msg.result);
-    } else if (msg.method) for (const l of listeners) l(msg);
-  };
-  const send = (method, params = {}) =>
-    new Promise((res, rej) => {
-      const id = ++seq;
-      pending.set(id, { res, rej });
-      ws.send(JSON.stringify({ id, method, params }));
-    });
-  const once = (method) =>
-    new Promise((r) => {
-      const l = (m) => {
-        if (m.method !== method) return;
-        listeners.delete(l);
-        r(m.params);
-      };
-      listeners.add(l);
-    });
-  await send('Page.enable');
-  await send('Runtime.enable');
-  try {
-    await fn({ send, once });
-  } finally {
-    ws.close();
-    chrome.kill();
-  }
-}
-
-async function evaluate({ send }, expression) {
-  const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-  if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
-  return r.result.value;
-}
 
 // Loads `url` at width × height and returns a PNG of the viewport.
 async function capture(cdp, { url, width, height, setup, transparent = false }) {
