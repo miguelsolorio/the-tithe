@@ -37,7 +37,7 @@ export class Particles {
     this.grav[i] = gravity;
   }
 
-  // kind: 'blood' | 'dust' | 'splash' | 'ichor'
+  // kind: 'blood' | 'dust' | 'splash' | 'ichor' | 'wood' (splinters)
   impact(point, normal, kind = 'dust', count = null) {
     const n = count ?? (kind === 'blood' ? 16 : 10);
     const c = COLORS[kind] || COLORS.dust;
@@ -85,4 +85,5 @@ const COLORS = {
   ichor: new THREE.Color(0x2a0306),
   dust: new THREE.Color(0x6b6050),
   splash: new THREE.Color(0x4f8f8c),
+  wood: new THREE.Color(0x9a7650),
 };

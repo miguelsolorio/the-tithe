@@ -21,6 +21,7 @@ import * as Materials from './world/materials.js';
 import { LevelManager } from './engine/levelManager.js';
 import { LEVELS } from './levels/index.js';
 import { installDebug, updateDebug } from './systems/debug.js';
+import { Props } from './systems/props.js';
 
 // Audio, props and creature models load asynchronously so a broken module
 // degrades gracefully (silence, placeholders, stand-ins) instead of a blank page.
@@ -122,6 +123,7 @@ class Game {
     this.particles = new Particles(this.scene);
     this.decals = new RuntimeDecals(this.scene);
     this.pickups = new Pickups(this);
+    this.props = new Props(this);
     this.enemies = new EnemyManager(this);
     this.levels = new LevelManager(this, LEVELS);
     this.sister = new Sister(this);
@@ -424,6 +426,7 @@ class Game {
       this.inventory.update();
       this.interaction.update();
       this.levels.update(dt, this.time);
+      this.props.update(dt);
       this.enemies.update(dt);
       this.sister.update(dt);
       this.particles.update(dt);

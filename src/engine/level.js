@@ -31,6 +31,10 @@ export class Level {
     this.enterHooks = [];
     this.exitHooks = [];
     this.disposables = [];
+    // Interactive props (src/systems/props.js): placed entries, moving bodies, loose debris.
+    this.props = [];
+    this.propBodies = [];
+    this.debris = [];
     this.env = {};
     this.active = false;
     this.time = 0;

@@ -283,7 +283,7 @@ export class Weapons {
     const hits = new Map();
     for (let i = 0; i < pellets; i++) {
       const dir = this.aimDir(W.spread);
-      const hit = this.trace(g.camera.position, dir, W.range);
+      const hit = this.trace(g.camera.position, dir, W.range, name);
       if (hit && hit.target) {
         const prev = hits.get(hit.target) || { dmg: 0, hit };
         prev.dmg += W.damage * (hit.mult ?? 1);
@@ -307,7 +307,7 @@ export class Weapons {
   }
 
   // Nearest of: a damageable target (enemy hit sphere) or a wall.
-  trace(origin, dir, range) {
+  trace(origin, dir, range, kind = 'revolver') {
     const g = this.game;
     const level = g.levels.current;
     const wall = level.physics.raycast(origin, dir, range, null, {});
@@ -316,8 +316,11 @@ export class Weapons {
     if (t) return t;
     if (wall) {
       g.particles.impact(wall.point, wall.normal, 'dust');
-      g.decals.bulletHole(wall.point, wall.normal);
-      if (Math.random() < 0.35) g.audio.play('ricochet', { pos: new THREE.Vector3(wall.point.x, wall.point.y, wall.point.z), gain: 0.5 });
+      // Props take their own bullet holes (they move); walls get a world decal.
+      if (!g.props.hit(wall.collider, wall.point, wall.normal, dir, kind)) {
+        g.decals.bulletHole(wall.point, wall.normal);
+        if (Math.random() < 0.35) g.audio.play('ricochet', { pos: new THREE.Vector3(wall.point.x, wall.point.y, wall.point.z), gain: 0.5 });
+      }
       return { point: wall.point, target: null };
     }
     return null;
@@ -341,7 +344,9 @@ export class Weapons {
     }
     const wall = g.levels.current.physics.raycast(origin, dir, W.range, null, {});
     if (wall) {
-      g.audio.play('knifeWall', { pos: new THREE.Vector3(wall.point.x, wall.point.y, wall.point.z) });
+      const pos = new THREE.Vector3(wall.point.x, wall.point.y, wall.point.z);
+      if (g.props.hit(wall.collider, wall.point, wall.normal, dir, 'knife')) g.audio.play('propHit', { pos, gain: 0.8 });
+      else g.audio.play('knifeWall', { pos });
       g.particles.impact(wall.point, wall.normal, 'dust', 4);
     }
   }

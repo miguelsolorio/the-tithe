@@ -79,3 +79,9 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 ### Inventory
 - [x] Bandages are carried (up to 3, `CONFIG.bandageMax`) instead of used on pickup; press `4` (or tap the slot on touch) to heal 40. Refused at full health or with none left; saved in checkpoints
 - [x] Item row split into three groups: weapons numbered 1–3 (fixed slots), consumables from 4 with a count, key items (phone, crowbar, fuse, valve) smaller and unnumbered
+
+### Interactive environment
+- [x] Pushable furniture: walking into chairs, crates, barrels and trunks shoves them (they spin when pushed off-centre, scrape, knock into each other); sprinting into a chair or crate, or a hard knife or bullet hit, tips it over with a thud that enemies hear. Enemies shove props too. Nav rebuilds when a prop comes to rest
+- [x] Shelves spill: stabbing or shooting a bookshelf knocks books out (knife 2–4, revolver 1–3, shotgun pellets 0–2 each), leaving gaps; they tumble and settle flat on the floor. Storage shelves drop jars (which shatter), boxes and cans
+- [x] No draw-call cost at rest: interactive props stay in the static batch, and touching one collapses its vertex range and swaps in the live object (`src/systems/props.js`, `hideRange` in `src/world/batcher.js`, part tags via `Kit.tag`)
+- [x] Wear: knife hits leave gouges (and the odd split along the grain), bullets leave splintered holes. The marks are projected decals clipped to the prop's surface and stay on it when it moves (one draw call per damaged prop, `src/systems/propDamage.js`). Each hit sprays splinters and flicks off wood chips, which get bigger as the prop wears down. At `hp` a chair gives way into `chairBroken`, and everything else bursts into planks (`hp`/`breaksInto` in `interactive.js`)

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { StaticBatcher } from './batcher.js';
+import { INTERACTIVE } from './props/interactive.js';
 import { getMaterial, getDecalMaterial } from './materials.js';
 import { makeProp, knockOver } from './props/index.js';
 import { Water } from './water.js';
@@ -172,6 +173,7 @@ export class LevelBuilder {
   //   seed, dynamic, collider override, lights: false to drop its lights, buzz (bulb hum loop), flicker override }
   prop(name, x, z, opts = {}) {
     let obj = makeProp(name, { seed: opts.seed ?? this.rng.int(1, 1e6), ...opts.args });
+    (this._placed ||= []).push({ x, z, y: opts.y ?? this.floorAt(x, z) });
     if (opts.fallen) obj = knockOver(obj, opts.fallen);
     const y = opts.y ?? this.floorAt(x, z);
     obj.position.set(x, y, z);
@@ -224,12 +226,34 @@ export class LevelBuilder {
         }
       });
       this.group.add(obj);
-    } else {
-      this.batcher.addObject(obj);
+    }
+    // Pushable / spillable props (src/systems/props.js) stay batched until touched.
+    const spec = !dynamic && opts.interactive !== false && !ud.lever && !sources.length && colliders.length ? INTERACTIVE[name] : null;
+    if (!dynamic) this.batcher.addObject(obj, !!spec);
+    if (spec && !(spec.spill && opts.fallen)) {
+      const entry = { obj, spec, colliders, fallen: !!opts.fallen };
+      for (const c of colliders) c.prop = entry;
+      this.level.props.push(entry);
     }
     obj.userData.colliders = colliders;
     obj.userData.sources = sources;
     return obj;
+  }
+
+  // A pushable prop with something standing on it (a candle on a crate, a
+  // pickup on a trunk) stays put, or the thing on top would float.
+  _pinProps() {
+    const props = this.level.props;
+    if (!props.length) return;
+    const on = [...(this._placed || []), ...this.level.interactables.map((it) => it.pos).filter(Boolean)];
+    const box = new THREE.Box3();
+    this.level.props = props.filter((e) => {
+      if (e.spec.spill) return true;
+      box.setFromObject(e.obj);
+      const top = on.some((p) => p.y > box.min.y + 0.15 && p.y < box.max.y + 0.3 && p.x > box.min.x && p.x < box.max.x && p.z > box.min.z && p.z < box.max.z);
+      if (top) for (const c of e.colliders) delete c.prop;
+      return !top;
+    });
   }
 
   _objectColliders(obj, spec, opts = {}) {
@@ -586,6 +610,7 @@ export class LevelBuilder {
   // ---------- Finish ----------
   finish() {
     const level = this.level;
+    this._pinProps();
     this.batcher.build(this.group);
     // Nav grid over the collider bounds.
     let b = this._navBounds;

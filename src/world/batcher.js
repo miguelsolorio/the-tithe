@@ -11,6 +11,8 @@ const CHUNK = 14;
 export class StaticBatcher {
   constructor() {
     this.buckets = new Map();
+    this.tracked = [];
+    this.trackedGeos = new Set();
   }
 
   // geo must already be in world space (the batcher takes ownership).
@@ -28,23 +30,40 @@ export class StaticBatcher {
       this.buckets.set(key, b);
     }
     b.geos.push(geo);
+    return geo;
   }
 
   // Add every mesh under an Object3D (props). Uses the prop's own UVs.
-  addObject(obj) {
+  // track = true: after build(), obj.userData.batch lists where each of its
+  // meshes landed ({ src, mesh, start, count } vertex ranges) so the prop
+  // can later be hidden from the batch (see hideRange) and woken up.
+  addObject(obj, track = false) {
     obj.updateMatrixWorld(true);
+    const entries = track ? [] : null;
     obj.traverse((m) => {
       if (!m.isMesh || m.isInstancedMesh) return;
       const mats = Array.isArray(m.material) ? m.material : [m.material];
       if (mats.length !== 1) return; // multi-material meshes are rare; skip batching them
       const g = m.geometry.clone().applyMatrix4(m.matrixWorld);
       this.add(g, mats[0], { worldUV: !!m.userData.worldUV, cast: m.castShadow !== false, receive: true });
+      if (entries) {
+        this.trackedGeos.add(g);
+        entries.push({ src: m, geo: g });
+      }
     });
+    if (track) this.tracked.push({ obj, entries });
   }
 
   build(parent) {
     const meshes = [];
+    const where = new Map();
     for (const b of this.buckets.values()) {
+      let start = 0;
+      const offsets = [];
+      for (const g of b.geos) {
+        offsets.push(start);
+        start += g.attributes.position.count;
+      }
       const merged = b.geos.length === 1 ? b.geos[0] : mergeGeometries(b.geos, false);
       if (!merged) continue;
       merged.computeBoundingSphere();
@@ -56,14 +75,35 @@ export class StaticBatcher {
       mesh.updateMatrix();
       parent.add(mesh);
       meshes.push(mesh);
-      for (const g of b.geos) if (g !== merged) g.dispose();
+      b.geos.forEach((g, i) => {
+        if (this.trackedGeos.has(g)) where.set(g, { mesh, start: offsets[i], count: g.attributes.position.count });
+        if (g !== merged) g.dispose();
+      });
     }
+    for (const { obj, entries } of this.tracked) {
+      obj.userData.batch = entries.map(({ src, geo }) => ({ src, ...where.get(geo) })).filter((e) => e.mesh);
+    }
+    this.tracked = [];
+    this.trackedGeos.clear();
     this.buckets.clear();
     return meshes;
   }
 }
 
 const _v = new THREE.Vector3();
+
+// Collapse vertices [start, start + count) of a mesh to one point, so their
+// triangles vanish without touching the draw call (a batched prop picked up,
+// a book knocked off a shelf).
+export function hideRange(mesh, start, count) {
+  const p = mesh.geometry.attributes.position;
+  const x = p.getX(start);
+  const y = p.getY(start);
+  const z = p.getZ(start);
+  for (let i = start; i < start + count; i++) p.setXYZ(i, x, y, z);
+  p.addUpdateRange(start * 3, count * 3);
+  p.needsUpdate = true;
+}
 
 // Keep only position/normal/uv, always indexed, so everything merges.
 function normalize(geo) {
