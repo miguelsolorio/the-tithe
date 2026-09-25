@@ -12,6 +12,13 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "5299", "--strictPort", "--mode", "stable"],
       "port": 5299
+    },
+    {
+      "name": "the-tithe-auto",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5199,
+      "autoPort": true
     }
   ]
 }

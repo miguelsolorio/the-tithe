@@ -4,7 +4,8 @@ export default defineConfig(({ mode }) => ({
   // Relative asset URLs so the build works under GitHub Pages' /the-tithe/ path.
   base: './',
   server: {
-    port: 5199,
+    // PORT lets parallel worktrees run side by side (launch.json autoPort).
+    port: Number(process.env.PORT) || 5199,
     // `vite --mode stable` serves without hot reload (steady play-testing
     // while files are being edited).
     hmr: mode !== 'stable',

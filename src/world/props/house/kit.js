@@ -315,6 +315,15 @@ export class Kit {
     this.parts = new Map();
     this.m = new THREE.Matrix4();
     this.stack = [];
+    this._tag = null;
+  }
+
+  // Tag the parts added until tag(null) so they can be found in the built
+  // mesh later (loose books that fall out of a shelf). Parts sharing one tag
+  // object across materials belong to the same piece.
+  tag(data = null) {
+    this._tag = data;
+    return this;
   }
 
   // Transform stack: parts added between push/pop are placed in that frame.
@@ -350,6 +359,7 @@ export class Kit {
     let list = this.parts.get(material);
     if (!list) this.parts.set(material, (list = []));
     list.push(geo);
+    if (this._tag) geo.userData.tag = this._tag;
     return geo;
   }
 
@@ -463,11 +473,23 @@ export class Kit {
     const group = new THREE.Group();
     group.name = name;
     for (const [material, list] of this.parts) {
+      // Vertex/index ranges of tagged parts in the merged geometry.
+      const parts = [];
+      let v0 = 0;
+      let i0 = 0;
+      for (const g of list) {
+        const vn = g.attributes.position.count;
+        const inn = g.index.count;
+        if (g.userData.tag) parts.push({ tag: g.userData.tag, v0, vn, i0, in: inn });
+        v0 += vn;
+        i0 += inn;
+      }
       const geo = list.length === 1 ? list[0] : mergeGeometries(list, false);
       geo.computeBoundingBox();
       geo.computeBoundingSphere();
       const mesh = new THREE.Mesh(geo, material);
       mesh.name = `${name}:${material.name || 'solid'}`;
+      if (parts.length) mesh.userData.parts = parts;
       group.add(mesh);
     }
     return group;

@@ -174,6 +174,7 @@ export class Player {
     this.velocity.z += (_wish.z - this.velocity.z) * k;
     this.move.height = C.height * this.eyeScale;
     level.physics.move(this.move, this.velocity.x * dt, this.velocity.z * dt, dt);
+    this.game.props.touch(this.move, this.velocity.x, this.velocity.z, this.sprinting);
     const hs = Math.hypot(this.velocity.x, this.velocity.z);
     this.moving = hs > 0.4;
     // How loud we are (enemies hear this): sprinting and splashing carry.

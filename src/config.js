@@ -28,6 +28,16 @@ export const CONFIG = {
     revolver: { damage: 48, mag: 6, cooldown: 0.42, reload: 1.7, spread: 0.006, range: 60 },
     shotgun: { damage: 16, pellets: 9, mag: 2, cooldown: 0.75, reload: 2.0, spread: 0.075, range: 30 },
   },
+  // Interactive props (src/systems/props.js).
+  props: {
+    push: 1.15, // shove from walking into a mass-1 prop, as a fraction of your speed
+    toppleSpeed: 4.4, // sprinting faster than this into a topple prop knocks it over
+    friction: 3.2,
+    stop: 1.6, // m/s² constant slow-down so things settle
+    spinDrag: 4,
+    tipGravity: 16,
+    debrisCap: 40, // loose books and jars on the floor per level (each is a draw call)
+  },
   bandageHeal: 40,
   ammoPickup: { revolver: 6, shotgun: 4 },
 };

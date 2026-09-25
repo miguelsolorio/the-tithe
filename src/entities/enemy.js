@@ -347,6 +347,7 @@ export class Enemy {
     const bx = before.x;
     const bz = before.z;
     level.physics.move(this.move, Math.sin(this.yaw) * step, Math.cos(this.yaw) * step, dt);
+    if (this.move.contacts.length) this.game.props.touch(this.move, Math.sin(this.yaw) * s, Math.cos(this.yaw) * s, false, 0.7);
     const moved = Math.hypot(this.pos.x - bx, this.pos.z - bz);
     this.speed = moved / Math.max(dt, 1e-4);
     // Stuck on something: force a repath soon.
