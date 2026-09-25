@@ -66,6 +66,15 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 
 ### Audio tweaks
 - [x] House interior (ground floor + upstairs): liturgy bed at 22% and world sounds (creaks, chants, enemies) at 35%; both swell to 50% as you near a live enemy (3–12 m), easing back down after (`src/levels/proximityAudio.js`). Chant gains lowered (chapel 0.6→0.3, upstairs loop 0.35→0.2)
+- [x] Chanting only near the praying room: chant loops use linear falloff to silence at 7 m (`loops.js`), acolyte chant 0.55→0.3, upstairs chant loop radius 15→7 / gain 0.2→0.12. Liturgy bed drops its steady chant and 9 s bell for a soft bell every 20–40 s plus an occasional creak/thump/low bell every 25–50 s. Music bus 0.55→0.4; house world sounds 25% quiet / 40% near, swelling only within 2–7 m of an enemy
+- [x] Liturgy music (drone + choir) hushed to 4% in the house and only swells (to 40%) within 7 m of an enemy; the soft bell and the occasional creak/thump play outside the bed so they're still heard
+
+### Mobile
+- [x] Touch controls (`src/ui/touch.js`): floating stick with sprint at the rim, drag to look, attack (drag to aim), use, reload, flashlight, pause; tap the prompt to use and a weapon slot to equip; `?touch` forces them on
+- [x] Mobile shell: no zoom or callouts, safe-area insets, fullscreen + landscape lock on Begin (where supported), audio unlocked inside the tap, pause when hidden or turned upright, "turn sideways" overlay
+- [x] Menus fit a sideways phone (scrollable screens, compact sizes, pause menu side by side); touch control lists and tutorial lines; HUD hidden behind menus on touch
+- [x] Phones render at 1× pixel ratio with a 512 px flashlight shadow
+- [ ] Play-test on a real iPhone and Android phone (so far tested only in emulated iPhone 13 portrait and landscape)
 
 ### Interactive environment
 - [x] Pushable furniture: walking into chairs, crates, barrels and trunks shoves them (they spin when pushed off-centre, scrape, knock into each other); sprinting into a chair or crate, or a hard knife or bullet hit, tips it over with a thud that enemies hear. Enemies shove props too. Nav rebuilds when a prop comes to rest

@@ -50,6 +50,18 @@ Open http://localhost:5199 and click **Begin**. Headphones recommended.
 | 1 / 2 / 3 | Knife / revolver / shotgun |
 | Esc | Pause (sensitivity and volume are in the pause menu) |
 
+On phones and tablets (or with `?touch`), on-screen controls take over. Play with the device sideways:
+
+| Touch | Action |
+| --- | --- |
+| Left thumb | Floating stick; push it to the rim to sprint |
+| Right thumb | Drag to look |
+| Crosshair button | Hold to attack; slide it to aim while firing |
+| Hand button, or tap the prompt | Interact |
+| Torch / reload buttons | Flashlight / reload |
+| Item row | Tap a weapon to equip it |
+| Pause button | Pause (also pauses when the app is switched away or the phone is turned upright) |
+
 ## The way down
 
 1. **The field at dusk.** Follow the ringing phone. The sky darkens as time passes and as you near the cabin.

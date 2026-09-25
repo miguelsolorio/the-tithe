@@ -1,14 +1,14 @@
 // Inside the house the liturgy and the house's own sounds (creaks, chants,
 // enemies) stay low and swell as you near anything alive, so the audio warns
 // you first. Levels spread HUSHED into L.env() and call hushUntilNear(L).
-export const MUSIC_QUIET = 0.22;
-export const SFX_QUIET = 0.35;
+export const MUSIC_QUIET = 0.04;
+export const SFX_QUIET = 0.25;
 // Level right next to an enemy; the swell tops out here, not at full.
-const LOUD = 0.5;
+const LOUD = 0.4;
 export const HUSHED = { musicLevel: MUSIC_QUIET, sfxLevel: SFX_QUIET };
 
-const NEAR = 3;
-const FAR = 12;
+const NEAR = 2;
+const FAR = 7;
 
 export function hushUntilNear(L) {
   let level = 0;

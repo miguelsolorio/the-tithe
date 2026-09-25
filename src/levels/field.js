@@ -148,7 +148,7 @@ function buildDusk(L, game, sky, grass) {
 
   L.onEnter((g) => {
     g.hud.say('Her phone pinged from this field. A year to the day since she disappeared.', 5);
-    setTimeout(() => g.state === 'playing' && g.levels.current?.id === 'field' && g.hud.say('WASD to walk, mouse to look. Follow the ringing.', 5), 5500);
+    setTimeout(() => g.state === 'playing' && g.levels.current?.id === 'field' && g.hud.say(g.touch ? 'Left thumb to walk, right thumb to look. Follow the ringing.' : 'WASD to walk, mouse to look. Follow the ringing.', 5), 5500);
   });
 
   // Phone in the grass: rings until taken.
@@ -201,11 +201,11 @@ function buildDusk(L, game, sky, grass) {
 
     if (!hinted.sprint && elapsed > 14) {
       hinted.sprint = true;
-      g.hud.say('Hold Shift to run.', 3);
+      g.hud.say(g.touch ? 'Push the stick all the way to run.' : 'Hold Shift to run.', 3);
     }
     if (!hinted.light && d > 0.55 && !g.player.flashOn) {
       hinted.light = true;
-      g.hud.say('It’s getting dark. Press F for your flashlight.', 4);
+      g.hud.say(g.touch ? 'It’s getting dark. Tap the torch button for your flashlight.' : 'It’s getting dark. Press F for your flashlight.', 4);
     }
   });
 

@@ -7,6 +7,7 @@ import { Player } from './player/player.js';
 import { Weapons } from './player/weapons.js';
 import { PostFX } from './systems/postfx.js';
 import { HUD } from './ui/hud.js';
+import { TouchControls, isTouchDevice } from './ui/touch.js';
 import { Inventory } from './systems/inventory.js';
 import { Interaction } from './systems/interaction.js';
 import { Particles } from './systems/particles.js';
@@ -75,6 +76,8 @@ class Game {
     this.settings = { sensitivity: 1, volume: 0.9 };
     this.events = new Events();
     this.stats = { kills: 0, deaths: 0, start: 0 };
+    this.touch = isTouchDevice(params);
+    document.body.classList.toggle('touch', this.touch);
 
     const renderer = (this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' }));
     renderer.shadowMap.enabled = true;
@@ -103,6 +106,7 @@ class Game {
 
     this.input = new Input(renderer.domElement);
     this.hud = new HUD(this);
+    this.touchControls = this.touch ? new TouchControls(this) : null;
     this.audio = new SilentAudio();
     this.ready = Promise.all([
       audioReady.then((Engine) => {
@@ -207,9 +211,18 @@ class Game {
   }
 
   bindUI() {
-    $('#btn-start').addEventListener('click', () => this.start());
-    $('#btn-continue').addEventListener('click', () => this.continueSaved());
-    $('#btn-resume').addEventListener('click', () => this.resume());
+    $('#btn-start').addEventListener('click', () => {
+      this.unlock();
+      this.start();
+    });
+    $('#btn-continue').addEventListener('click', () => {
+      this.unlock();
+      this.continueSaved();
+    });
+    $('#btn-resume').addEventListener('click', () => {
+      this.unlock();
+      this.resume();
+    });
     $('#btn-checkpoint').addEventListener('click', () => this.retry());
     $('#btn-quit').addEventListener('click', () => this.quitToTitle());
     $('#btn-dead-quit').addEventListener('click', () => this.quitToTitle());
@@ -234,6 +247,31 @@ class Game {
     this.renderer.domElement.addEventListener('click', () => {
       if (this.state === 'playing' && !this.input.locked) this.input.requestLock();
     });
+    if (this.touch) {
+      // Switching apps or locking the phone pauses (there's no pointer lock to lose).
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) this.pause();
+      });
+    }
+  }
+
+  // Mobile browsers only start audio and go fullscreen inside a tap, so do
+  // both before any await.
+  unlock() {
+    this.listener.context.resume?.();
+    if (!this.touch) return;
+    const el = document.documentElement;
+    const fs = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (fs && !document.fullscreenElement) {
+      Promise.resolve(fs.call(el, { navigationUI: 'hide' }))
+        .then(() => screen.orientation?.lock?.('landscape'))
+        .catch(() => {});
+    }
+  }
+
+  lock() {
+    if (!this.touch) this.input.requestLock();
+    this.touchControls?.show(true);
   }
 
   resetRun() {
@@ -253,7 +291,7 @@ class Game {
   beginPlay() {
     this.audio.init(this.listener);
     this.audio.setVolume(this.settings.volume);
-    this.input.requestLock();
+    this.lock();
     this.hud.screen(null);
     this.hud.show();
     this.state = 'playing';
@@ -289,6 +327,7 @@ class Game {
     this.hud.screen('pause');
     this.audio.setPaused(true);
     this.input.releaseLock();
+    this.touchControls?.show(false);
   }
 
   resume() {
@@ -296,7 +335,7 @@ class Game {
     this.state = 'playing';
     this.hud.screen(null);
     this.audio.setPaused(false);
-    this.input.requestLock();
+    this.lock();
   }
 
   async retry() {
@@ -304,7 +343,7 @@ class Game {
     this.hud.clearMessages();
     this.state = 'playing';
     this.audio.setPaused(false);
-    this.input.requestLock();
+    this.lock();
     await this.levels.restartFromCheckpoint();
   }
 
@@ -318,6 +357,7 @@ class Game {
     this.hud.screen('title');
     if (LevelManager.loadSaved()) $('#btn-continue').classList.remove('hidden');
     this.input.releaseLock();
+    this.touchControls?.show(false);
     this.flags = new Set();
     this.showTitleScene();
   }
@@ -335,6 +375,7 @@ class Game {
       $('#death-text').textContent = text;
       this.hud.screen('dead');
       this.input.releaseLock();
+      this.touchControls?.show(false);
     }, 1600);
   }
 
@@ -352,6 +393,7 @@ class Game {
       this.hud.hide();
       this.hud.screen('end');
       this.input.releaseLock();
+      this.touchControls?.show(false);
       this.audio.setZone('dawn');
     }, 3200);
   }
@@ -362,7 +404,8 @@ class Game {
     // A minimised or hidden window reports 0: keep the last size (a zero-size
     // framebuffer makes WebGL warn on every frame).
     if (!w || !h) return;
-    const pr = Math.min(devicePixelRatio, 1.25);
+    // Phones: 1× pixels keeps the fill rate (and the battery) in check.
+    const pr = Math.min(devicePixelRatio, this.touch ? 1 : 1.25);
     this.renderer.setPixelRatio(pr);
     this.renderer.setSize(w, h);
     this.camera.aspect = w / h;
@@ -390,6 +433,7 @@ class Game {
       this.lights.update(this.camera.position, this.time, dt);
       this.audio.update(dt, { health01: this.player.health / CONFIG.player.maxHealth });
       this.hud.update(dt);
+      this.touchControls?.update();
     } else if (this.state === 'title' && this.levels.current) {
       this.time += dt;
       this.updateTitleScene(dt);

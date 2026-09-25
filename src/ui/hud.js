@@ -80,7 +80,7 @@ export class HUD {
   setPrompt(text) {
     if (text === this.lastPrompt) return;
     this.lastPrompt = text;
-    this.promptEl.innerHTML = text ? `<kbd>E</kbd>${escapeHtml(text)}` : '';
+    this.promptEl.innerHTML = text ? `<kbd>${this.game.touch ? 'Tap' : 'E'}</kbd>${escapeHtml(text)}` : '';
   }
 
   // Subtitle line; queued so scripted lines don't overwrite each other.

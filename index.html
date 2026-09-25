@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>The Tithe</title>
     <meta name="description" content="A first-person horror game. A year after your sister vanished, her phone pings from a field. At dusk you drive out to find it." />
     <meta name="theme-color" content="#050303" />
@@ -24,6 +27,18 @@
   </head>
   <body>
     <div id="app"></div>
+
+    <div id="touch" class="hidden">
+      <div class="stick"><i></i></div>
+      <button class="tbtn pause" data-act="pause" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" /></svg></button>
+      <div class="cluster">
+        <button class="tbtn attack" data-act="attack" aria-label="Attack"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" /><path d="M12 2v5M12 17v5M2 12h5M17 12h5" /></svg></button>
+        <button class="tbtn use" data-act="use" aria-label="Use"><svg viewBox="0 0 24 24"><path d="M9 11V5a1.5 1.5 0 0 1 3 0v5M12 10V4a1.5 1.5 0 0 1 3 0v6M15 10V6a1.5 1.5 0 0 1 3 0v8c0 4-2.5 7-6 7s-5-2-7-5l-2-3a1.5 1.5 0 0 1 2.5-1.5L9 14" /></svg></button>
+        <button class="tbtn reload" data-act="reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5" /></svg></button>
+        <button class="tbtn light" data-act="light" aria-label="Flashlight"><svg viewBox="0 0 24 24"><path d="M9 3h6v5l-1 2v10h-4V10L9 8zM9 8h6" /></svg></button>
+      </div>
+    </div>
+    <div id="rotate" class="hidden">Turn your device sideways</div>
 
     <div id="hud" class="hidden">
       <div id="crosshair"></div>
@@ -47,7 +62,7 @@
           <button id="btn-start">Begin</button>
           <button id="btn-continue" class="secondary hidden">Continue</button>
         </div>
-        <div class="controls">
+        <div class="controls keys-only">
           <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</div>
           <div><kbd>Mouse</kbd> look</div>
           <div><kbd>Shift</kbd> sprint</div>
@@ -57,6 +72,14 @@
           <div><kbd>R</kbd> reload</div>
           <div><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> weapons</div>
           <div><kbd>Esc</kbd> pause</div>
+        </div>
+        <div class="controls touch-only">
+          <div><kbd>Left thumb</kbd> move, push far to run</div>
+          <div><kbd>Right thumb</kbd> look</div>
+          <div><kbd>Attack</kbd> hold, drag to aim</div>
+          <div><kbd>Hand</kbd> or tap the prompt to use</div>
+          <div><kbd>Weapons</kbd> tap to equip</div>
+          <div><kbd>Torch</kbd> flashlight</div>
         </div>
         <p class="hint">Headphones recommended.</p>
       </div>
@@ -71,12 +94,12 @@
             <button id="btn-checkpoint" class="secondary">Restart from checkpoint</button>
             <button id="btn-quit" class="secondary">Quit to title</button>
           </div>
-          <label class="setting">Mouse sensitivity <input id="sens" type="range" min="0.3" max="2.5" step="0.05" value="1" /></label>
+          <label class="setting">Look sensitivity <input id="sens" type="range" min="0.3" max="2.5" step="0.05" value="1" /></label>
           <label class="setting">Volume <input id="vol" type="range" min="0" max="1" step="0.05" value="0.9" /></label>
         </div>
         <div class="pause-controls">
           <h3>Controls</h3>
-          <div class="controls">
+          <div class="controls keys-only">
             <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</div>
             <div><kbd>Mouse</kbd> look</div>
             <div><kbd>Shift</kbd> sprint</div>
@@ -86,6 +109,14 @@
             <div><kbd>R</kbd> reload</div>
             <div><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> weapons</div>
             <div><kbd>Esc</kbd> pause</div>
+          </div>
+          <div class="controls touch-only">
+            <div><kbd>Left thumb</kbd> move, push far to run</div>
+            <div><kbd>Right thumb</kbd> look</div>
+            <div><kbd>Attack</kbd> hold, drag to aim</div>
+            <div><kbd>Hand</kbd> or tap the prompt to use</div>
+            <div><kbd>Weapons</kbd> tap to equip</div>
+            <div><kbd>Torch</kbd> flashlight</div>
           </div>
         </div>
       </div>
