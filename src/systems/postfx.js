@@ -78,7 +78,7 @@ export class PostFX {
       wp.clearDepth = true;
       this.composer.addPass(wp);
     }
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.4, 0.9);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.35, 0.4, 1.15);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
     this.horror = new ShaderPass(HorrorShader);

@@ -215,13 +215,23 @@ export class Player {
     this.updateCamera(dt);
 
     // ---- Flashlight ----
-    const lightTarget = this.flashOn ? CONFIG.flashlight.intensity : 0;
-    this.spot.intensity += (lightTarget - this.spot.intensity) * Math.min(1, dt * 20);
-    this.spot.visible = this.spot.intensity > 0.05;
+    const F = CONFIG.flashlight;
     this.camera.getWorldDirection(_fwd);
     this.lightDir.lerp(_fwd, damp(14, dt)).normalize();
     this.spot.position.copy(this.camera.position).addScaledVector(_right, 0.18).add(new THREE.Vector3(0, -0.12, 0));
     this.spot.target.position.copy(this.spot.position).addScaledVector(this.lightDir, 5);
+    // Dim when the beam is right up against a wall or the floor so it doesn't blow out.
+    let near = F.nearRange;
+    if (this.flashOn) {
+      const level = this.game.levels.current;
+      const hit = level && level.physics.raycast(this.spot.position, this.lightDir, F.nearRange, null, this._rayOut || (this._rayOut = {}));
+      if (hit) near = hit.dist;
+      if (this.lightDir.y < -0.01) near = Math.min(near, (this.spot.position.y - this.position.y) / -this.lightDir.y);
+    }
+    const nk = clamp((near - 0.3) / (F.nearRange - 0.3), 0, 1);
+    const lightTarget = this.flashOn ? F.intensity * lerp(F.nearDim, 1, nk * nk * (3 - 2 * nk)) : 0;
+    this.spot.intensity += (lightTarget - this.spot.intensity) * Math.min(1, dt * 10);
+    this.spot.visible = this.spot.intensity > 0.05;
     this.fill.position.copy(this.camera.position);
     this.fill.intensity = this.flashOn ? 0.5 : 0.18;
   }

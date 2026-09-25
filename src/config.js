@@ -17,11 +17,14 @@ export const CONFIG = {
   },
   flashlight: {
     color: 0xfff1d6,
-    intensity: 24,
-    distance: 28,
-    angle: 0.5,
-    penumbra: 0.6,
+    intensity: 28,
+    distance: 36,
+    angle: 0.72,
+    penumbra: 0.75,
     decay: 1.3,
+    // Dim toward nearDim as the beam's centre closes within nearRange (m) of a surface.
+    nearDim: 0.35,
+    nearRange: 2.2,
   },
   weapons: {
     knife: { damage: 34, range: 2.0, cooldown: 0.5, hitDelay: 0.12 },
