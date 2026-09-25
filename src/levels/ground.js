@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { HUSHED, hushUntilNear } from './proximityAudio.js';
 import { getMaterial, getDecalMaterial, solid } from '../world/materials.js';
 import { makeProp, PROP_NAMES } from '../world/props/index.js';
 
@@ -63,6 +64,7 @@ export default {
       grade: { color: 0xffa860, amount: 0.35 },
       exposure: 1.05,
       music: flood ? 'escape' : 'liturgy',
+      ...(flood ? {} : HUSHED),
     });
 
     const powerLocked = (g) => (g.flags.has('power.on') ? false : 'An electric lock, dead. A sticker reads BASEMENT CIRCUIT. The fuse box is on this wall.');
@@ -132,6 +134,7 @@ export default {
     notes(L, altarTop);
     pickups(L);
     enemies(L, game);
+    if (!flood) hushUntilNear(L);
 
     // The front door slams behind you the first time.
     L.onEnter((g, spawn) => {
@@ -442,7 +445,7 @@ function chapel(L, game) {
       if (g.flags.has('chapel.lit')) return;
       g.setFlag('chapel.lit');
       g.audio.play('ignite', { pos: new THREE.Vector3(17.8, 0.5, -5.5) });
-      setTimeout(() => g.audio.play('chant', { pos: new THREE.Vector3(20, 1.5, -5.5), gain: 0.6 }), 900);
+      setTimeout(() => g.audio.play('chant', { pos: new THREE.Vector3(20, 1.5, -5.5), gain: 0.3 }), 900);
       for (const s of sources) s.enabled = true;
       ignite = 0.001;
       g.hud.say('The candles light themselves. The sigil on the floor starts to glow.', 4);

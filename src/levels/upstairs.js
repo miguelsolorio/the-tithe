@@ -1,4 +1,5 @@
 import { makeCtx } from './upstairs/common.js';
+import { HUSHED, hushUntilNear } from './proximityAudio.js';
 import { buildPlan, ritualDoors, dressHall, dressLanding } from './upstairs/house.js';
 import { buildHatch } from './upstairs/hatch.js';
 import { bedroom, bathroom, nursery, sickroom } from './upstairs/rooms.js';
@@ -31,7 +32,9 @@ export default {
       grade: { color: 0xffa860, amount: 0.35 },
       exposure: 1.05,
       music: 'liturgy',
+      ...HUSHED,
     });
+    hushUntilNear(L);
     const P = buildPlan(L);
     const U = makeCtx(L, game, P);
 

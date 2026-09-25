@@ -28,7 +28,7 @@ export class LevelBuilder {
 
   // ---------- Environment ----------
   // { fog: { color, density }, ambient: { sky, ground, intensity }, grade: { color, amount },
-  //   music, exposure, background, sun: { color, intensity, dir: [x,y,z] } }
+  //   music, musicLevel / sfxLevel (0..1 bed / world-sound volume), exposure, background, sun: { color, intensity, dir: [x,y,z] } }
   env(cfg) {
     Object.assign(this.level.env, cfg);
   }

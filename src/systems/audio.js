@@ -19,6 +19,10 @@ const ZONE_REVERB = {
   boss: 0.8, escape: 0.3, dawn: 0.25,
 };
 
+// Positional sounds the player causes; these stay at full level on the sfxBus
+// rather than following setWorldLevel.
+const PLAYER_SFX = new Set(['ricochet', 'knifeHit', 'knifeWall', 'bulletHit', 'doorOpen', 'doorLocked']);
+
 const DUMMY_LOOP = { setPos() {}, setGain() {}, stop() {} };
 
 export class AudioEngine {
@@ -31,6 +35,8 @@ export class AudioEngine {
     this._heartT = 0;
     this._bossBpm = 58;
     this._bed = null;
+    this._bedLevel = 1;
+    this._worldLevel = 1;
     this._dread = null;
     this._dreadStopTimer = null;
   }
@@ -45,6 +51,7 @@ export class AudioEngine {
     const ctx = listener.context;
     this.ctx = ctx;
     buildBuses(this, ctx);
+    this.worldBus.gain.value = this.worldSend.gain.value = this._worldLevel;
     this.master.connect(listener.getInput());
     this.H = createHelpers(this);
     this.ready = true;
@@ -77,7 +84,8 @@ export class AudioEngine {
     if (!this.ready) return;
     const fn = SFX[name];
     if (!fn) { this._warnOnce(name); return; }
-    try { fn(this.H, this.sfxBus, pos || null, gain); }
+    const dest = pos && !PLAYER_SFX.has(name) ? this.worldBus : this.sfxBus;
+    try { fn(this.H, dest, pos || null, gain); }
     catch (e) { console.error(`[audio] play('${name}') failed:`, e); }
   }
 
@@ -117,12 +125,30 @@ export class AudioEngine {
     try {
       const L = createBed(this, this.H);
       build(this.H, L, this);
-      L.bus.gain.setTargetAtTime(1, t, tc);
+      L.bus.gain.setTargetAtTime(this._bedLevel, t, tc);
       this._bed = L;
     } catch (e) {
       console.error(`[audio] setZone('${name}') failed:`, e);
       this._bed = null;
     }
+  }
+
+  // Scales the active zone bed (0..1), e.g. to swell it as enemies get close.
+  // Levels that don't drive it get 1 back on every level change.
+  setZoneLevel(v01, tc = 0.5) {
+    if (Math.abs(v01 - this._bedLevel) < 0.005) return;
+    this._bedLevel = v01;
+    if (this.ready && this._bed) this._bed.bus.gain.setTargetAtTime(v01, this.ctx.currentTime, tc);
+  }
+
+  // Scales positional world sounds (0..1); reset like setZoneLevel.
+  setWorldLevel(v01, tc = 0.5) {
+    if (Math.abs(v01 - this._worldLevel) < 0.005) return;
+    this._worldLevel = v01;
+    if (!this.ready) return;
+    const t = this.ctx.currentTime;
+    this.worldBus.gain.setTargetAtTime(v01, t, tc);
+    this.worldSend.gain.setTargetAtTime(v01, t, tc);
   }
 
   // Called every frame with a smoothed 0..1 value; cheap when already settled.

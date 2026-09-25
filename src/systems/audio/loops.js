@@ -22,10 +22,10 @@ export function makeLoopHandle(engine, H, pos, gain) {
     bus.connect(panner);
     head = panner;
   }
-  head.connect(engine.sfxBus);
+  head.connect(pos ? engine.worldBus : engine.sfxBus);
   const send = H.G(0.3);
   head.connect(send);
-  send.connect(engine.reverb);
+  send.connect(pos ? engine.worldSend : engine.reverb);
   const nodes = [];
   const timers = [];
   let stopped = false;

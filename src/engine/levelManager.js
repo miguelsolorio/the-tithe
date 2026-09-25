@@ -127,6 +127,8 @@ export class LevelManager {
     g.fx.setGrade(grade.color, grade.amount);
     g.weapons.hemi.color.set(a.sky);
     g.weapons.hemi.intensity = 0.5 + a.intensity * 0.6;
+    g.audio.setZoneLevel(env.musicLevel ?? 1, 1);
+    g.audio.setWorldLevel(env.sfxLevel ?? 1, 1);
     if (env.music !== undefined) g.audio.setZone(env.music);
   }
 

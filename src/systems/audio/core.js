@@ -60,6 +60,7 @@ export function distortionCurve(k) {
 
 // Builds the fixed bus graph on the engine instance:
 //   sfxBus, musicBus  -> comp -> underwaterFilter -> master -> (listener)
+//   worldBus -> sfxBus, worldSend -> reverb     (positional world sounds; setWorldLevel)
 //   reverb -> reverbReturn -> comp                  (per-voice sends join here)
 // setZone() automates reverbReturn.gain; setUnderwater() automates the filter.
 export function buildBuses(engine, ctx) {
@@ -92,6 +93,13 @@ export function buildBuses(engine, ctx) {
   engine.reverbReturn.gain.value = 0.4;
   engine.reverb.connect(engine.reverbReturn);
   engine.reverbReturn.connect(engine.comp);
+
+  // Sounds the world makes (creaks, chants, enemies), scaled as one so a level
+  // can hush them; the reverb send gets the same level so tails match.
+  engine.worldBus = ctx.createGain();
+  engine.worldBus.connect(engine.sfxBus);
+  engine.worldSend = ctx.createGain();
+  engine.worldSend.connect(engine.reverb);
 
   engine.white = noiseBuffer(ctx, false, 3);
   engine.brown = noiseBuffer(ctx, true, 6);
@@ -222,7 +230,7 @@ export function createHelpers(engine) {
     head.connect(dest);
     const send = G(wet);
     head.connect(send);
-    send.connect(engine.reverb);
+    send.connect(dest === engine.worldBus ? engine.worldSend : engine.reverb);
     setTimeout(() => {
       try { g.disconnect(); } catch {}
       try { head.disconnect(); } catch {}

@@ -62,3 +62,6 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 - [x] Five icon + social image directions; picked **Sigil** (blood-red seal, IM Fell English type), the other four removed
 - [x] Wired in: SVG favicon + `favicon.ico`, apple-touch-icon, manifest icons (with maskable), `og:` / `twitter:` tags in `index.html` (source `branding/sigil.html`, `node branding/render.mjs`)
 - [x] README: hero image, play link, six in-game screenshots (`node branding/render.mjs shots`)
+
+### Audio tweaks
+- [x] House interior (ground floor + upstairs): liturgy bed at 22% and world sounds (creaks, chants, enemies) at 35%; both swell to 50% as you near a live enemy (3–12 m), easing back down after (`src/levels/proximityAudio.js`). Chant gains lowered (chapel 0.6→0.3, upstairs loop 0.35→0.2)
