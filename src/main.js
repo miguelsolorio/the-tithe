@@ -353,6 +353,9 @@ class Game {
   resize() {
     const w = innerWidth;
     const h = innerHeight;
+    // A minimised or hidden window reports 0: keep the last size (a zero-size
+    // framebuffer makes WebGL warn on every frame).
+    if (!w || !h) return;
     const pr = Math.min(devicePixelRatio, 1.25);
     this.renderer.setPixelRatio(pr);
     this.renderer.setSize(w, h);
@@ -386,7 +389,7 @@ class Game {
     }
     this.input.endFrame();
     this.fx.update(dt, this.time, { health01: this.state === 'title' ? 1 : this.player.health / CONFIG.player.maxHealth });
-    if (skipRender) return;
+    if (skipRender || !innerWidth || !innerHeight) return;
     if (this.state !== 'title' || this.levels.current) this.fx.render();
     else this.renderer.clear();
     if (this.debug) updateDebug(this, dt);

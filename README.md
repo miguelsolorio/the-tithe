@@ -13,6 +13,8 @@ npm run dev
 
 Open http://localhost:5199 and click **Begin**. Headphones recommended.
 
+`npm run dev -- --mode stable` serves the same game without hot reload (the `the-tithe-stable` entry in `.claude/launch.json`, port 5299), which is handy for play-testing while editing.
+
 ## Controls
 
 | Key | Action |
@@ -63,9 +65,11 @@ Choices made where the brief left room:
 - **Levels are separate areas** joined by stairs, ladders and hatches, with a short fade. That keeps each area fast to render and makes the cabin's small exterior and huge interior possible.
 - **Key items open the next area**: phone → cabin door, knife → stair ropes, fuse → basement door, crowbar → cistern grate, valve wheel → sluice gate, shotgun → the sphincter to the heart.
 - **Checkpoints** on entering each area (flags, inventory, health; at least half health), also kept in `localStorage` for **Continue**.
-- **The knife never runs out**, so every area can be finished without ammo.
+- **The knife never runs out**, so every area can be finished without ammo. The ritual knife does double damage to the Mother Below: she was bound with it.
 - **Flashlight** has no battery; darkness is the challenge, and enemies see you from farther away when it is on.
 - **Mouse sensitivity and volume** are in the pause menu.
+- **HUD**: health bar at the bottom centre, the weapon and ammo just above it, key items top left.
+- **Doors**: every regular doorway has a hinged door; they stay open once opened. Secret passages, archways and torn flesh openings have none.
 - **Performance**: a fixed pool of 6 point lights follows the nearest candles, bulbs and glowing tissue; only the flashlight casts shadows; static geometry is merged per material.
 
 ## Project layout

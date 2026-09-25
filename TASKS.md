@@ -46,11 +46,14 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 ### Milestone 5: boss and ending
 - [x] The heart: the Mother Below (lash, slam, spit, summon, three phases), heartbeat tied to her health, cut your sister free (subagent, Opus; `f8d554e`)
 - [x] Sister follower, flood variants of the house, dawn field ending
-- [ ] Full escape run heart → caves → cistern → basement → ground → dawn field, commit (after the 5:10 pm PT usage reset)
+- [x] Full escape run heart → caves → cistern → basement → ground → dawn field (QA pass, scripted playthrough: sister follows, flood rises, exits work, end screen shown)
 
 ### HUD
 - [x] Health bar bottom centre, weapon and ammo centred above it (`2bca63e`)
 
 ### Milestone 6: polish
-- [ ] Balance and performance pass, full playthrough with no console errors
-- [ ] README with controls, debug commands and defaults
+- [x] Full playthrough with no console errors (QA pass: field → ground → upstairs → basement → cistern → caves → heart → escape → dawn ending, title/pause/death/end screens); no bugs found in src/**
+- [x] Performance: every level measured by its builder (≈60–260 draw calls in view, warm builds under 800 ms, far plane follows the fog, far enemies sleep); balance: 8–14 revolver rounds and 2–3 bandages per level, knife-only is always possible, the boss takes double knife damage
+- [x] README with controls, debug commands and defaults
+- [x] Doors: fixed doors in east/west walls rendering inside the wall; real doors on every regular doorway (`5d672a0`)
+- [x] Field start: real forest ring with the cabin's trees, a realistic car (`a83e8a2`)
