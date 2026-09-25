@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig(({ mode }) => ({
+  // Relative asset URLs so the build works under GitHub Pages' /the-tithe/ path.
+  base: './',
   server: {
     port: 5199,
     // `vite --mode stable` serves without hot reload (steady play-testing
