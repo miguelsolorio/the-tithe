@@ -24,7 +24,7 @@ export class Acolyte extends Enemy {
 
   onState(s, prev) {
     // Praying acolytes chant; the chant stops when they notice you.
-    if (s === 'pray' && !this.loop) this.loop = this.game.audio.loop('chantLoop', { pos: this.eye().clone(), gain: 0.55 });
+    if (s === 'pray' && !this.loop) this.loop = this.game.audio.loop('chantLoop', { pos: this.eye().clone(), gain: 0.3 });
     if (prev === 'pray' && s !== 'pray') {
       this.loop?.stop(0.4);
       this.loop = null;

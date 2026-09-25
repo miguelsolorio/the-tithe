@@ -4,7 +4,9 @@
 import { chant, drip } from './sfx-depths.js';
 import { phoneBuzz } from './sfx-weapons.js';
 
-export function makeLoopHandle(engine, H, pos, gain) {
+// opts overrides the panner's distance falloff, e.g. a linear model with a
+// short max so a loop goes fully silent a few metres away.
+export function makeLoopHandle(engine, H, pos, gain, opts = {}) {
   const ctx = H.ctx;
   const bus = H.G(gain);
   let panner = null;
@@ -12,10 +14,10 @@ export function makeLoopHandle(engine, H, pos, gain) {
   if (pos) {
     panner = ctx.createPanner();
     panner.panningModel = 'HRTF';
-    panner.distanceModel = 'inverse';
-    panner.refDistance = 2;
-    panner.rolloffFactor = 1.1;
-    panner.maxDistance = 60;
+    panner.distanceModel = opts.model ?? 'inverse';
+    panner.refDistance = opts.ref ?? 2;
+    panner.rolloffFactor = opts.rolloff ?? 1.1;
+    panner.maxDistance = opts.max ?? 60;
     panner.positionX.value = pos.x;
     panner.positionY.value = pos.y || 0;
     panner.positionZ.value = pos.z;
@@ -89,9 +91,10 @@ function candle(engine, H, pos, gain) {
   return L;
 }
 
-// Acolyte chant voices re-triggered back to back.
+// Acolyte chant voices re-triggered back to back. Linear falloff to silence
+// at 7 m so it's only heard close to the praying room.
 function chantLoop(engine, H, pos, gain) {
-  const L = makeLoopHandle(engine, H, pos, gain);
+  const L = makeLoopHandle(engine, H, pos, gain, { model: 'linear', ref: 1, max: 7, rolloff: 1 });
   const go = () => {
     chant(H, L.bus, null, 1);
     L.later(3300, go);

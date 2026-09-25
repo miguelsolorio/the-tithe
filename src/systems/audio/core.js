@@ -84,7 +84,7 @@ export function buildBuses(engine, ctx) {
   engine.sfxBus.connect(engine.comp);
 
   engine.musicBus = ctx.createGain();
-  engine.musicBus.gain.value = 0.55;
+  engine.musicBus.gain.value = 0.4;
   engine.musicBus.connect(engine.comp);
 
   engine.reverb = ctx.createConvolver();
