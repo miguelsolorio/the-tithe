@@ -10,9 +10,10 @@ Every model, texture and sound is generated in code. The only media files are th
 
 ## Demo
 
-[![Watch the 45-second gameplay demo](docs/demo/poster.jpg)](docs/demo/demo.mp4)
+<!-- GitHub only plays uploaded videos inline. After `npm run demo`, drag the new docs/demo/demo.mp4 into any GitHub comment box and replace this URL with the one it inserts. -->
+https://github.com/user-attachments/assets/0a31f2b6-d453-4054-93ee-6397f6f38776
 
-A 45-second look at the field, the house and the depths below (no final-boss spoilers). **[Watch the demo](docs/demo/demo.mp4)** (with sound).
+A 45-second look at the field, the house and the depths below, with no final-boss spoilers. Sound on. The file is also in the repo at [`docs/demo/demo.mp4`](docs/demo/demo.mp4).
 
 ## Screenshots
 
@@ -40,7 +41,7 @@ npm run dev
 
 Open http://localhost:5199 and click **Begin**. Headphones recommended.
 
-`npm run demo` re-records the README demo video from a running dev server (see `branding/record-demo.mjs`; needs Chrome and ffmpeg).
+`npm run demo` re-records the README demo video from a running dev server (see `branding/record-demo.mjs`; needs Chrome and ffmpeg). The README plays an uploaded copy, so upload the new file and swap its URL in the Demo section.
 
 `npm run dev -- --mode stable` serves the same game without hot reload (the `the-tithe-stable` entry in `.claude/launch.json`, port 5299), which is handy for play-testing while editing.
 

@@ -1,4 +1,4 @@
-// Records the 45-second README demo (docs/demo/demo.mp4 + poster.jpg) from a
+// Records the 45-second README demo (docs/demo/demo.mp4) from a
 // running dev server with headless Chrome and ffmpeg. Stops short of the
 // heart: the final boss never appears.
 //
@@ -43,7 +43,6 @@ const PLAY_URL = 'miguelsolorio.github.io/the-tithe';
 // Each segment: `seconds` long; `level` starts a fresh debug run there (god
 // mode); `flags` are set first; `weapon` hands over every item and draws that
 // one; `setup` runs once under black; `script` plays it out (see the helpers).
-// `poster` marks the README poster frame (seconds into the segment);
 // `subtitles: false` hides the level's own lines where they'd be out of place.
 const SEGMENTS = [
   {
@@ -99,7 +98,6 @@ const SEGMENTS = [
     flags: ['chapel.open', 'chapel.lit'],
     weapon: 'revolver',
     seconds: 5.5,
-    poster: 1.4,
     subtitles: false,
     setup: `game.player.flashOn = true; game.place(15.4, -5.5, 20.3, -5.5, -0.04);`,
     script: `
@@ -190,7 +188,7 @@ const TOTAL = SEGMENTS.reduce((n, s) => n + s.seconds, 0);
 
 // Runs in the page: the fade overlay, end card, game-time timers, seeded
 // randomness, the movement helpers and the timeline itself.
-function installDirector(segments, playUrl, [W, H], fps) {
+function installDirector(segments, playUrl, fps) {
   const game = window.game;
   const DT = 1 / fps;
   const AsyncFunction = (async () => {}).constructor;
@@ -657,34 +655,6 @@ function installDirector(segments, playUrl, [W, H], fps) {
       for (let k = 0; k < bytes.length; k += 0x8000) s += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
       return { audio: btoa(s), blip, marks, ends, lag, cost, shots: demo.shots, fired: demo.fired, report: demo.report };
     },
-
-    // The README poster: a frame scaled to the video size with a play button.
-    async poster(jpeg) {
-      const img = new Image();
-      img.src = `data:image/jpeg;base64,${jpeg}`;
-      await img.decode();
-      const bmp = await createImageBitmap(img, { resizeWidth: W, resizeHeight: H, resizeQuality: 'high' });
-      const c = new OffscreenCanvas(W, H);
-      const g = c.getContext('2d');
-      g.drawImage(bmp, 0, 0);
-      g.fillStyle = 'rgba(0, 0, 0, 0.55)';
-      g.strokeStyle = 'rgba(230, 221, 210, 0.9)';
-      g.lineWidth = 3;
-      g.beginPath();
-      g.arc(W / 2, H / 2, 56, 0, Math.PI * 2);
-      g.fill();
-      g.stroke();
-      g.fillStyle = '#e6ddd2';
-      g.beginPath();
-      g.moveTo(W / 2 - 16, H / 2 - 26);
-      g.lineTo(W / 2 + 28, H / 2);
-      g.lineTo(W / 2 - 16, H / 2 + 26);
-      g.fill();
-      const bytes = new Uint8Array(await (await c.convertToBlob({ type: 'image/jpeg', quality: 0.88 })).arrayBuffer());
-      let s = '';
-      for (let k = 0; k < bytes.length; k += 0x8000) s += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
-      return btoa(s);
-    },
   };
   // Every shot the game actually fires (the sync check uses these).
   game.events.on('gunshot', () => demo.fired.push({ seg: i, at: local, voices: game.audio._voiceCount }));
@@ -707,7 +677,7 @@ async function openGame(cdp) {
   await loaded;
   await evaluate(cdp, `new Promise((r) => { const w = () => (window.game ? r() : setTimeout(w, 50)); w(); })`);
   await evaluate(cdp, `game.ready.then(() => document.fonts.ready).then(() => 1)`);
-  await evaluate(cdp, `(${installDirector})(${JSON.stringify(SEGMENTS)}, ${JSON.stringify(PLAY_URL)}, [${WIDTH}, ${HEIGHT}], ${FPS})`);
+  await evaluate(cdp, `(${installDirector})(${JSON.stringify(SEGMENTS)}, ${JSON.stringify(PLAY_URL)}, ${FPS})`);
 }
 
 function write(file, buf) {
@@ -732,8 +702,6 @@ async function renderFrames(cdp, dir, stills) {
       for (const u of us) wanted.add(Math.round((starts[k] + s.seconds * u) * FPS));
     });
   }
-  const posterSeg = SEGMENTS.findIndex((s) => s.poster);
-  const posterFrame = Math.round((starts[posterSeg] + SEGMENTS[posterSeg].poster) * FPS);
   const ends = [];
   const t0 = Date.now();
   let prev = null;
@@ -749,7 +717,6 @@ async function renderFrames(cdp, dir, stills) {
     const { data } = await send('Page.captureScreenshot', { format: 'jpeg', quality: 92 });
     const name = stills ? `${String(f).padStart(4, '0')}-${now}.jpg` : `f${String(f).padStart(5, '0')}.jpg`;
     write(resolve(dir, name), Buffer.from(data, 'base64'));
-    if (!stills && f === posterFrame) write(POSTER, Buffer.from(await evaluate(cdp, `demo.poster('${data}')`), 'base64'));
     if (!stills && f % FPS === 0) process.stdout.write(`\rframes ${f}/${frames} (${Math.round((Date.now() - t0) / 1000)} s)`);
   }
   ends.push(prev);
@@ -771,7 +738,6 @@ const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
 const outIdx = args.indexOf('--out');
 const OUT = resolve(ROOT, outIdx >= 0 ? args[outIdx + 1] : 'docs/demo/demo.mp4');
-const POSTER = resolve(dirname(OUT), 'poster.jpg');
 const WORK = resolve(tmpdir(), 'tithe-demo');
 rmSync(WORK, { recursive: true, force: true });
 mkdirSync(WORK, { recursive: true });
@@ -846,7 +812,9 @@ execFileSync(FFMPEG, [
   '-t', String(TOTAL), '-movflags', '+faststart', OUT,
 ], { stdio: 'inherit' });
 
-console.log(`wrote ${relative(ROOT, OUT)} and ${relative(ROOT, POSTER)}`);
+console.log(`wrote ${relative(ROOT, OUT)}`);
+// The README plays a copy uploaded to GitHub (it won't play repo files inline).
+console.log('README: drag the new video into a GitHub comment box and swap the user-attachments URL in the Demo section');
 if (!silent) syncCheck(fired.map((x) => starts[x.seg] + x.at));
 
 // Each scripted gunshot should be heard on the frame it fires: find the
