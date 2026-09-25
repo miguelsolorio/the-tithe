@@ -21,6 +21,8 @@ import * as Materials from './world/materials.js';
 import { LevelManager } from './engine/levelManager.js';
 import { LEVELS } from './levels/index.js';
 import { installDebug, updateDebug } from './systems/debug.js';
+import { Props } from './systems/props.js';
+import { Analytics } from './systems/analytics.js';
 
 // Audio, props and creature models load asynchronously so a broken module
 // degrades gracefully (silence, placeholders, stand-ins) instead of a blank page.
@@ -122,12 +124,14 @@ class Game {
     this.particles = new Particles(this.scene);
     this.decals = new RuntimeDecals(this.scene);
     this.pickups = new Pickups(this);
+    this.props = new Props(this);
     this.enemies = new EnemyManager(this);
     this.levels = new LevelManager(this, LEVELS);
     this.sister = new Sister(this);
 
     this.events.on('enemyKilled', () => this.stats.kills++);
     this.events.on('gunshot', (pos) => this.enemies.noise(pos, 24));
+    this.analytics = new Analytics(this);
 
     this.lastFrame = performance.now();
     this.resize();
@@ -158,6 +162,7 @@ class Game {
 
   setFlag(name) {
     this.flags.add(name);
+    if (this.state !== 'title') this.analytics.milestone(name);
   }
 
   // The field at dusk behind the title: a slow drift down the track toward the cabin.
@@ -278,7 +283,7 @@ class Game {
     this.player.reset();
     this.weapons.reset();
     this.hud.setHealth(1);
-    this.hud.setItems([]);
+    this.inventory.refreshHud();
     this.weapons.updateHud();
     this.hud.clearMessages();
     this.levels.disposeAll();
@@ -301,6 +306,7 @@ class Game {
     this.resetRun();
     this.beginPlay();
     const id = level ? this.levels.resolve(level) : 'field';
+    this.analytics.runStart('new');
     if (id && id !== 'field') {
       // Debug start: hand over what you'd have by this point.
       this.levels.byId[id].prepare?.(this);
@@ -314,6 +320,8 @@ class Game {
     await this.ready;
     this.resetRun();
     for (const v of cp.visited || []) this.levels.visited.add(v);
+    this.flags = new Set(cp.flags);
+    this.analytics.runStart('continue');
     this.beginPlay();
     await this.levels.restartFromCheckpoint(cp);
   }
@@ -337,6 +345,7 @@ class Game {
   }
 
   async retry() {
+    this.analytics.retry();
     this.hud.screen(null);
     this.hud.clearMessages();
     this.state = 'playing';
@@ -346,6 +355,7 @@ class Game {
   }
 
   quitToTitle() {
+    if (this.state !== 'title') this.analytics.quit();
     this.state = 'title';
     this.levels.disposeAll();
     this.audio.setZone(null);
@@ -364,6 +374,7 @@ class Game {
     if (this.state !== 'playing') return;
     this.state = 'dead';
     this.stats.deaths++;
+    this.analytics.death(cause);
     this.player.frozen = true;
     this.audio.play('death');
     this.audio.setDread(0);
@@ -384,6 +395,7 @@ class Game {
     this.player.frozen = true;
     this.fx.fadeTo(1, 0.35, 0xf4e6d0);
     LevelManager.clearSaved();
+    this.analytics.complete();
     const mins = Math.max(1, Math.round((this.time - this.stats.start) / 60));
     setTimeout(() => {
       $('#end-text').textContent = 'The sun comes up over the field. Behind you the cabin is only a small cabin again, and the water has gone quiet. Your sister does not let go of your hand.';
@@ -421,8 +433,10 @@ class Game {
       this.time += dt;
       this.player.update(dt);
       this.weapons.update(dt);
+      this.inventory.update();
       this.interaction.update();
       this.levels.update(dt, this.time);
+      this.props.update(dt);
       this.enemies.update(dt);
       this.sister.update(dt);
       this.particles.update(dt);

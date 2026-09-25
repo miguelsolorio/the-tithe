@@ -1,4 +1,4 @@
-import { ITEM_INFO } from '../systems/inventory.js';
+import { ITEM_INFO, CONSUMABLES } from '../systems/inventory.js';
 
 // DOM HUD: health, ammo, crosshair, prompt, key items, subtitles, notices, screens.
 
@@ -12,6 +12,7 @@ const ICONS = {
   crowbar: '<path d="M5 21L18 5c1-1 3-1 3 1 0 1-1 1-2 1"/><path d="M5 21l-2-1"/>',
   valve: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 4v6M12 14v6M4 12h6M14 12h6"/>',
   shotgun: '<path d="M2 11h14l1-1h5v2H10l-2 3H5l-1 3H2l1-4z"/><path d="M12 12v2"/>',
+  bandage: '<circle cx="9" cy="12" r="6"/><circle cx="9" cy="12" r="2"/><path d="M9 6h8l3 3v9h-5"/><path d="M15 12h2M15 15h2"/>',
 };
 
 export class HUD {
@@ -33,6 +34,7 @@ export class HUD {
     this.noticeTimer = 0;
     this.lastPrompt = undefined;
     this.shownItems = [];
+    this.shownCounts = {};
     this.weapon = null;
   }
 
@@ -51,7 +53,7 @@ export class HUD {
 
   setWeapon(name) {
     this.weapon = name || null;
-    for (const el of this.itemsEl.children) el.classList.toggle('active', el.dataset.id === this.weapon);
+    for (const el of this.itemsEl.querySelectorAll('[data-kind="weapon"]')) el.classList.toggle('active', el.dataset.id === this.weapon);
   }
 
   setAmmo(a) {
@@ -64,17 +66,30 @@ export class HUD {
     this.ammoCount.innerHTML = a.reserve === null || a.reserve === undefined ? `${a.mag}` : `${a.mag} <small>/ ${a.reserve}</small>`;
   }
 
-  setItems(items) {
-    const html = items
-      .filter((id) => ICONS[id])
-      .map((id) => {
-        const isNew = !this.shownItems.includes(id);
-        const cls = `item${isNew ? ' new' : ''}${id === this.weapon ? ' active' : ''}`;
-        return `<div class="${cls}" data-id="${id}" title="${ITEM_INFO[id]?.label || id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[id]}</svg></div>`;
+  // Three groups: numbered weapons, numbered consumable stacks, then key items.
+  setInventory(inv) {
+    const items = inv.items.filter((id) => ICONS[id]);
+    const weapons = items.filter((id) => ITEM_INFO[id]?.weapon).sort((a, b) => ITEM_INFO[a].slot - ITEM_INFO[b].slot);
+    const keys = items.filter((id) => !ITEM_INFO[id]?.weapon);
+    const slot = (id, kind, { num, count, extra = '' } = {}) => {
+      const label = (kind === 'consumable' ? CONSUMABLES[id].label : ITEM_INFO[id]?.label) || id;
+      const hint = num ? ` (${num})` : '';
+      return `<div class="item ${kind}${extra}" data-id="${id}" data-kind="${kind}" title="${label}${hint}">${num ? `<b class="num">${num}</b>` : ''}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[id]}</svg>${count ? `<i class="count">${count}</i>` : ''}</div>`;
+    };
+    const isNew = (id) => (!this.shownItems.includes(id) ? ' new' : '');
+    const w = weapons.map((id) => slot(id, 'weapon', { num: ITEM_INFO[id].slot, extra: isNew(id) + (id === this.weapon ? ' active' : '') })).join('');
+    const c = Object.entries(CONSUMABLES)
+      .filter(([id]) => inv.count(id) > 0)
+      .map(([id, info]) => {
+        const n = inv.count(id);
+        const prev = this.shownCounts[id] ?? 0;
+        return slot(id, 'consumable', { num: info.slot, count: n, extra: n > prev ? ' new' : n < prev ? ' used' : '' });
       })
       .join('');
-    this.itemsEl.innerHTML = html;
+    const k = keys.map((id) => slot(id, 'key', { extra: isNew(id) })).join('');
+    this.itemsEl.innerHTML = `<div class="group weapons">${w}</div><div class="group consumables">${c}</div><div class="group keys">${k}</div>`;
     this.shownItems = [...items];
+    this.shownCounts = { ...inv.consumables };
   }
 
   setPrompt(text) {

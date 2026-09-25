@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { makeProp, PROP_NAMES } from '../world/props/index.js';
-import { ITEM_INFO } from '../systems/inventory.js';
+import { ITEM_INFO, CONSUMABLES } from '../systems/inventory.js';
 
 // Ammo, bandages and key items lying in the world. Each has a stable id so a
 // rebuilt level remembers what was already taken (flag `took:<id>`).
@@ -92,20 +92,19 @@ export class Pickups {
   prompt(spec, game) {
     if (spec.prompt) return spec.prompt;
     if (spec.kind === 'item') return `Take ${ITEM_INFO[spec.item]?.label?.toLowerCase() || spec.item}`;
-    if (spec.kind === 'bandage') return game.player.health >= CONFIG.player.maxHealth ? 'Bandage (not hurt)' : 'Use bandage';
+    if (spec.kind === 'bandage') return game.inventory.count('bandage') >= CONSUMABLES.bandage.max ? 'Bandages full' : 'Take bandage';
     return `Take ${LABEL[spec.kind]}`;
   }
 
   take(spec, game) {
     const inv = game.inventory;
     if (spec.kind === 'bandage') {
-      if (game.player.health >= CONFIG.player.maxHealth) {
-        game.hud.say("You're not hurt.", 1.5);
+      if (!inv.addConsumable('bandage')) {
+        game.hud.say("You can't carry any more bandages.", 1.8);
         return false;
       }
-      game.player.heal(spec.amount ?? CONFIG.bandageHeal);
-      game.audio.play('bandage');
-      game.hud.say('You bind the wound.', 2);
+      game.audio.play('pickup');
+      game.hud.say(`+1 bandage (${inv.count('bandage')}/${CONSUMABLES.bandage.max}) · ${game.touch ? 'tap it' : 'press 4'} to use`, 2.2);
     } else if (spec.kind === 'ammo') {
       inv.addAmmo('revolver', spec.amount ?? CONFIG.ammoPickup.revolver);
       game.audio.play('ammo');

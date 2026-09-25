@@ -3,6 +3,7 @@ import { makeDress, dressOssuary, dressTunnel, dressGallery, dressHall } from '.
 import { dressVeins, dressGauntlet, dressPool, dressWomb, dressReturn } from './caves/dress2.js';
 import { scheduler, spawnsAndExits, sphincter, maws, enemies, pickups, hunter, returnMembrane, beats } from './caves/play.js';
 import { installBreathing, pulsePods, stutterLights, fogCull } from './caves/fx.js';
+import { dressLevel } from '../world/ambience/index.js';
 
 // Level 6: the flesh caves. Past the ossuary crawlspace the stone turns to
 // meat: the Mother Below has grown up through the cisterns. A rib gallery
@@ -63,6 +64,22 @@ export default {
     // The living tissue.
     installBreathing(L);
     pulsePods(L, pods);
+    // Webs only in the stone ossuary and crawl; bones underfoot in the flesh,
+    // flies over the dead and the pods, a low crimson haze.
+    dressLevel(L, P, {
+      webs: { only: 'Ac', vaults: true, ceil: 0.8, floor: 0.4, spiders: 0.35 },
+      clutter: {
+        A: [['bones', 6], ['rags', 1]],
+        c: [['bones', 6]],
+        T: [['bones', 4]],
+        t: [['bones', 3]],
+        V: [['bones', 3]],
+        G: [['bones', 3], ['rags', 1]],
+      },
+      flies: flood ? [] : [[11.95, 0.5, -1.6], [-25.3, 0.7, 23.3], ...pods.slice(0, 4).map((o) => [o.position.x, o.position.y + 1.2, o.position.z])],
+      mist: !flood && { color: 0x3a060a, opacity: 0.4, count: 34, radius: 11, size: [2.5, 5], height: [0.05, 0.6], drift: [0.03, 0.05] },
+      motes: { color: 0xc89080, base: 0.05 },
+    });
     fogCull(L);
     if (flood) {
       L.flood({ min: [ORIGIN[0], ORIGIN[1]], max: [ORIGIN[0] + 51, ORIGIN[1] + 58], from: -0.3, to: 2.35, seconds: 110, color: 0x1c0306 });

@@ -52,6 +52,17 @@ Three zones, each with its own lighting:
 - **Baptism pool** — teal water that turns red as acolytes gather around it.
 - **The womb** — a flesh chamber with glowing pods holding curled figures.
 
+## Atmosphere and ambient life
+
+Shared helpers in `src/world/ambience/`; each level calls `dressLevel(L, P, {...})` last in its build.
+
+- **Ground mist** — soft puffs hugging the floor, kept in a box around the player and lit up by the flashlight. Dusk amber-brown turning cold grey at night in the field, pale gold at dawn; teal lying on the water in the basement and cistern; a low crimson haze in the caves and the heart; only in the blood chapel on the ground floor.
+- **Dust motes** — only really visible inside the flashlight beam (bone-white upstairs, teal-grey below, red-brown in the flesh).
+- **Cobwebs** — diagonal sheets across room corners, loose strands and the odd small spider; in every house, basement and cistern room, thick in the attic rafters. None in the flesh.
+- **Floor debris** — loose pages, fallen plaster, broken glass and bottles, rags, small bones, candle stubs, dropped books.
+- **Critters (harmless, never gameplay)** — rats that bolt into the walls from the light; crows on the scarecrow and fences that fly off when approached and leave at nightfall; moths around bulbs and lanterns; flies over the dead, the drowned feast and the pods.
+- **Wolves** — never seen: howls from the treeline, and at night pairs of eyes low in the dark that go out when the flashlight finds them or you walk toward them. Phones get half the mist, motes and critters.
+
 ## Enemies
 
 | Name | Where found | Behavior |

@@ -44,7 +44,8 @@ function fillRow(k, x0, x1, y, clear, zf, lever) {
       const a = Math.asin(Math.min(0.85, Math.max(0.08, (wd - t) / h)));
       const cx = x + (h / 2) * Math.sin(a) + (t / 2) * Math.cos(a);
       const cy = y + (t / 2) * Math.sin(a) + (h / 2) * Math.cos(a);
-      k.box(m, t, h, d, cx, cy, zf - d / 2, 0, 0, a);
+      k.tag({ kind: 'book' }).box(m, t, h, d, cx, cy, zf - d / 2, 0, 0, a);
+      k.tag(null);
       prevUpright = false;
     } else if (kind === 'stack') {
       let sy = y;
@@ -53,9 +54,10 @@ function fillRow(k, x0, x1, y, clear, zf, lever) {
         const t = rng.range(0.028, 0.05);
         const bw = wd - rng.range(0.005, 0.035);
         const bd = rng.range(0.15, 0.22);
-        k.box(bookMat(rng.int(0, 7)), bw, t, bd, x + wd / 2 + rng.range(-0.008, 0.008), sy + t / 2, zf - bd / 2 - rng.range(0, 0.015), 0, rng.range(-0.06, 0.06), 0);
+        k.tag({ kind: 'book' }).box(bookMat(rng.int(0, 7)), bw, t, bd, x + wd / 2 + rng.range(-0.008, 0.008), sy + t / 2, zf - bd / 2 - rng.range(0, 0.015), 0, rng.range(-0.06, 0.06), 0);
         sy += t;
       }
+      k.tag(null);
       wd += 0.01;
       prevUpright = false;
     } else if (kind === 'ornament') {
@@ -71,11 +73,13 @@ function fillRow(k, x0, x1, y, clear, zf, lever) {
       const h = Math.min(clear - 0.025, rng.range(0.2, 0.33));
       const d = rng.range(0.16, 0.24);
       const z = zf - rng.range(0, 0.02);
+      k.tag({ kind: 'book' });
       k.box(m, t, h, d, x + t / 2, y + h / 2, z - d / 2);
       if (rng() < 0.2) {
         k.box('gilt', t + 0.002, 0.007, 0.004, x + t / 2, y + h * 0.14, z + 0.001);
         k.box('gilt', t + 0.002, 0.007, 0.004, x + t / 2, y + h * 0.86, z + 0.001);
       }
+      k.tag(null);
       wd += rng.range(0, 0.003);
       prevUpright = true;
     }
@@ -308,19 +312,24 @@ export function shelf(opts = {}) {
         x += rng.range(0.06, 0.2);
       } else if (r < 0.52 && maxH > 0.1 && x + 0.12 < x1) {
         const jr = rng.range(0.035, 0.06);
+        k.tag({ kind: 'jar' });
         addJar(k, jr, rng.range(0.1, 0.2), rng.pick(['murky', 'jarRed', 'glass']), x + jr, top, rng.range(-0.08, 0.08));
+        k.tag(null);
         x += jr * 2 + 0.02;
       } else if (r < 0.75 && x + 0.15 < x1) {
         const bw = Math.min(x1 - x, rng.range(0.15, 0.3));
         const bh = Math.min(maxH + 0.1, rng.range(0.1, 0.25));
-        k.box('card', bw, bh, rng.range(0.2, 0.3), x + bw / 2, top + bh / 2, rng.range(-0.04, 0.04), 0, rng.range(-0.1, 0.1), 0);
+        k.tag({ kind: 'box' }).box('card', bw, bh, rng.range(0.2, 0.3), x + bw / 2, top + bh / 2, rng.range(-0.04, 0.04), 0, rng.range(-0.1, 0.1), 0);
+        k.tag(null);
         x += bw + 0.02;
       } else if (r < 0.9 && maxH > 0.1 && x + 0.1 < x1) {
         const n = Math.min(rng.int(1, 3), Math.floor((x1 - x) / 0.081));
-        for (let j = 0; j < n; j++) k.cyl('rust', 0.038, 0.038, 0.11, x + 0.038 + j * 0.081, top + 0.055, rng.range(-0.08, 0.1), 0, 0, 0, 8);
+        for (let j = 0; j < n; j++) k.tag({ kind: 'can' }).cyl('rust', 0.038, 0.038, 0.11, x + 0.038 + j * 0.081, top + 0.055, rng.range(-0.08, 0.1), 0, 0, 0, 8);
+        k.tag(null);
         x += n * 0.081 + 0.02;
       } else if (maxH > 0.1 && x + 0.07 < x1) {
-        k.lathe('glass', [[0, 0], [0.03, 0], [0.03, 0.16], [0.012, 0.2], [0.011, 0.25], [0, 0.25]], x + 0.03, top, rng.range(-0.05, 0.08), 8);
+        k.tag({ kind: 'jar' }).lathe('glass', [[0, 0], [0.03, 0], [0.03, 0.16], [0.012, 0.2], [0.011, 0.25], [0, 0.25]], x + 0.03, top, rng.range(-0.05, 0.08), 8);
+        k.tag(null);
         x += 0.08;
       } else {
         x += 0.1;

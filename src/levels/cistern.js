@@ -1,4 +1,5 @@
 import { makeRng } from '../core/rng.js';
+import { dressLevel } from '../world/ambience/index.js';
 import { makeRows, ROOMS, DOORS, plugCorners } from './cistern/layout.js';
 import { CisternFX, fogCull, fallGuard } from './cistern/fx.js';
 import { buildTunnels } from './cistern/tunnels.js';
@@ -37,7 +38,7 @@ export default {
       music: flood ? 'escape' : 'undertow',
     });
     const rows = makeRows();
-    L.plan({ origin: [0, 0], rows, rooms: ROOMS, doors: DOORS });
+    const P = L.plan({ origin: [0, 0], rows, rooms: ROOMS, doors: DOORS });
     plugCorners(L, rows);
     const fx = new CisternFX(L);
     buildTunnels(L, fx, rng);
@@ -46,6 +47,24 @@ export default {
     buildSluice(L, fx, game, { flood });
     buildOssuary(L, fx, rng, game);
     buildStory(L, fx, rng, game, { flood, rooms });
+    // Webs where the vaults spring and across the crawlspace, bones and rubble
+    // underfoot, rats on the walkways, flies on the hanging meat, a cold mist
+    // lying on the water and dust in the torch beam.
+    dressLevel(L, P, {
+      webs: { vaults: true, ceil: 0.8, floor: 0.35, spiders: 0.3, size: [0.7, 1.4] },
+      clutter: {
+        o: [['bones', 10], ['rags', 2]],
+        S: [['rags', 2], ['bones', 2]],
+        D: [['bones', 4], ['rags', 2]],
+        B: [['bones', 3]],
+        a: [['stubs', 6], ['bones', 3]],
+      },
+      rats: flood ? null : { rooms: 'SDB', n: 3 },
+      moths: ['lantern'],
+      flies: flood ? [] : [[49.6, 2.5, 20.8]],
+      mist: !flood && { color: 0x1e4a4f, opacity: 0.34, count: 38, radius: 12, size: [2.5, 5], height: [0.05, 0.7], drift: [0.06, 0.03] },
+      motes: { color: 0x9ab8b0 },
+    });
     fogCull(L, 27);
     fallGuard(L);
 

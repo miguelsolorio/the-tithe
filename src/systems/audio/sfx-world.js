@@ -184,7 +184,74 @@ export function bossDeath(H, dest, pos, gain = 1) {
   setTimeout(() => bell(H, dest, pos, 0.5 * gain, 55), 3400);
 }
 
+// ---- Interactive props (src/systems/props.js) ----
+
+// Wooden legs dragged a short way across boards.
+export function propScrape(H, dest, pos, gain = 1) {
+  const t = H.now();
+  const o = H.out(dest, 0.15, 0.35 * gain, 1.5, pos);
+  const x = H.nz(o, H.white, 'bandpass', H.rnd(500, 800), 3, t, 0.03, 0.8, 0.12, 0.08);
+  x.frequency.setValueAtTime(x.frequency.value, t);
+  x.frequency.linearRampToValueAtTime(x.frequency.value * H.rnd(0.8, 1.3), t + 0.2);
+  H.nz(o, H.brown, 'lowpass', 260, 1, t, 0.02, 0.5, 0.15, 0.05);
+}
+
+// A piece of furniture landing on its side: wood clatter over a floor thump.
+export function propTopple(H, dest, pos, gain = 1) {
+  const t = H.now();
+  const o = H.out(dest, 0.35, 0.7 * gain, 3, pos);
+  H.nz(o, H.white, 'bandpass', 900, 2, t, 0.001, 0.8, 0.09);
+  H.tone(o, 'sine', 180, t, 0.002, 0.5, 0.12, 0, 90);
+  for (let i = 0; i < 3; i++) H.nz(o, H.white, 'bandpass', H.rnd(700, 1400), 4, t + 0.06 + i * H.rnd(0.04, 0.09), 0.001, H.rnd(0.2, 0.45), 0.05);
+  thump(H, dest, pos, 0.7 * gain);
+}
+
+// Knife or bullet into solid wood.
+export function propHit(H, dest, pos, gain = 1) {
+  const t = H.now();
+  const o = H.out(dest, 0.2, 0.55 * gain, 1.5, pos);
+  H.nz(o, H.white, 'bandpass', 1200, 2.5, t, 0.001, 0.8, 0.06);
+  H.tone(o, 'triangle', 240, t, 0.001, 0.6, 0.1, 0, 140);
+  H.nz(o, H.brown, 'lowpass', 300, 1, t, 0.002, 0.5, 0.12);
+}
+
+// A book slapping the floorboards.
+export function bookFall(H, dest, pos, gain = 1) {
+  const t = H.now();
+  const o = H.out(dest, 0.2, 0.45 * gain, 1.2, pos);
+  H.nz(o, H.white, 'lowpass', H.rnd(1400, 2400), 1, t, 0.001, 0.9, 0.07);
+  H.tone(o, 'sine', H.rnd(110, 150), t, 0.001, 0.5, 0.08, 0, 70);
+}
+
+// Tin can bouncing.
+export function canFall(H, dest, pos, gain = 1) {
+  const t = H.now();
+  const o = H.out(dest, 0.2, 0.35 * gain, 1.2, pos);
+  [1, 2.7, 4.1].forEach((r) => H.tone(o, 'sine', 620 * r, t, 0.001, 0.4 / r, 0.12));
+  H.nz(o, H.white, 'highpass', 2500, 1, t, 0.001, 0.4, 0.03);
+}
+
+// Glass jar bursting on the floor.
+export function glassBreak(H, dest, pos, gain = 1) {
+  const t = H.now();
+  const o = H.out(dest, 0.3, 0.55 * gain, 2, pos);
+  H.nz(o, H.white, 'highpass', 3000, 0.8, t, 0.001, 0.9, 0.18);
+  for (let i = 0; i < 7; i++) H.tone(o, 'sine', H.rnd(2500, 6000), t + H.rnd(0, 0.25), 0.001, H.rnd(0.08, 0.2), H.rnd(0.05, 0.15));
+  H.nz(o, H.brown, 'lowpass', 400, 1, t, 0.002, 0.4, 0.1);
+}
+
+// Furniture giving way: splintering cracks, then the pieces clattering down.
+export function propBreak(H, dest, pos, gain = 1) {
+  const t = H.now();
+  const o = H.out(dest, 0.35, 0.8 * gain, 3, pos);
+  H.nz(o, H.white, 'bandpass', 1800, 1.5, t, 0.001, 1, 0.12);
+  H.tone(o, 'triangle', 200, t, 0.001, 0.6, 0.15, 0, 80);
+  for (let i = 0; i < 6; i++) H.nz(o, H.white, 'bandpass', H.rnd(600, 1600), 3, t + 0.1 + i * H.rnd(0.04, 0.1), 0.001, H.rnd(0.25, 0.55), 0.06);
+  thump(H, dest, pos, 0.5 * gain);
+}
+
 export const WORLD_SFX = {
+  propScrape, propTopple, propHit, propBreak, bookFall, canFall, glassBreak,
   fuse, valve, grate, ropeCut, waterRise, flood, collapse, mirrorScare, sisterSob,
   enemyDie, houndBite, drownedRise, mawLunge, bossRoar, bossLash, bossSpit, splat,
   chains, bossRise, bossHurt, bossDeath,

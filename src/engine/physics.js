@@ -149,8 +149,9 @@ export class Physics {
   }
 
   // Resolve a circle (feet at pos.y, given height) against solid colliders
-  // in XZ. Mutates pos. Returns true if anything was hit.
-  resolveCircle(pos, radius, height, stepHeight) {
+  // in XZ. Mutates pos. Returns true if anything was hit. Colliders in
+  // `ignore` (an array) are skipped; hit colliders are pushed to `contacts`.
+  resolveCircle(pos, radius, height, stepHeight, ignore = null, contacts = null) {
     const feet = pos.y;
     const lo = feet + stepHeight;
     const hi = feet + height;
@@ -160,6 +161,7 @@ export class Physics {
       let moved = false;
       for (const c of list) {
         if (!c.solid || !c.enabled || c.type === 'height') continue;
+        if (ignore && ignore.includes(c)) continue;
         const bottom = Physics.bottomOf(c);
         if (bottom >= hi) continue;
         if (c.type === 'cyl') {
@@ -174,6 +176,7 @@ export class Physics {
           pos.x += (dx / d) * push;
           pos.z += (dz / d) * push;
           hit = moved = true;
+          if (contacts && !contacts.includes(c)) contacts.push(c);
           continue;
         }
         // Box or ramp: closest point in XZ.
@@ -203,6 +206,7 @@ export class Physics {
           else pos.z = c.max.z + radius;
         }
         hit = moved = true;
+        if (contacts && !contacts.includes(c)) contacts.push(c);
       }
       if (!moved) break;
     }
@@ -211,16 +215,19 @@ export class Physics {
 
   // Move a grounded circle mover by (dx, dz) with sub-steps, collision and
   // ground snapping. state: { pos, vy, grounded, radius, height, stepHeight }.
-  // Returns the ground collider (or null).
+  // Returns the ground collider (or null). Solid colliders bumped this move
+  // end up in state.contacts.
   move(state, dx, dz, dt, gravity = 22) {
     const pos = state.pos;
+    const contacts = state.contacts || (state.contacts = []);
+    contacts.length = 0;
     const dist = Math.hypot(dx, dz);
     const steps = Math.max(1, Math.ceil(dist / (state.radius * 0.5)));
     const g = this._g || (this._g = { y: 0, collider: null });
     for (let i = 0; i < steps; i++) {
       pos.x += dx / steps;
       pos.z += dz / steps;
-      this.resolveCircle(pos, state.radius, state.height, state.stepHeight);
+      this.resolveCircle(pos, state.radius, state.height, state.stepHeight, null, contacts);
       // Step up onto anything within step height.
       this.groundAt(pos.x, pos.z, pos.y + state.stepHeight, g);
       if (g.y > pos.y && state.grounded) pos.y = g.y;

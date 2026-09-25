@@ -6,6 +6,7 @@ import { stairwell, hall, storage, laundry } from './basement/west.js';
 import { boilerRoom, coalRoom, wineCellar } from './basement/service.js';
 import { diningRoom } from './basement/dining.js';
 import { pumpRoom } from './basement/pump.js';
+import { dressLevel } from '../world/ambience/index.js';
 
 // Level 4: the flooded basement. You come down the kitchen stairs into black
 // water: the cult drowned the lower house to keep the Mother Below asleep.
@@ -39,7 +40,7 @@ export default {
       music: flood ? 'escape' : 'undertow',
     });
 
-    L.plan({ origin: ORIGIN, rows: makeRows(), rooms: ROOM_DEFS, doors: DOORS, open: OPEN });
+    const P = L.plan({ origin: ORIGIN, rows: makeRows(), rooms: ROOM_DEFS, doors: DOORS, open: OPEN });
 
     // One water surface over the whole level (the pump room sits above it).
     const fl = new Floaters(L);
@@ -69,6 +70,7 @@ export default {
 
     if (flood) floodEscape(L);
     else enemies(L);
+    decay(L, P, flood);
     visibility(L);
 
     L.onEnter((g, spawn) => {
@@ -83,6 +85,24 @@ export default {
     });
   },
 };
+
+// Webs under every ceiling (the floors are under water), cold mist lying on
+// the water, rats in the dry pump room and on the stairs, flies over the
+// drowned feast, moths at the lamps, dust in the torch beam.
+function decay(L, P, flood) {
+  dressLevel(L, P, {
+    webs: { ceil: 0.9, floor: 0, spiders: 0.3, size: [0.7, 1.4] },
+    clutter: {
+      P: [['rags', 3], ['bones', 3], ['paper', 2]],
+      u: [['plaster', 3]],
+    },
+    rats: flood ? null : { rooms: 'P', n: 2, spots: [[-2.7, Y.u, -16.4]] },
+    moths: ['bulb', 'lantern'],
+    flies: flood ? [] : [[25.15, 1.35, -2], [21.5, 0.9, -2], [19, 0.9, -2]],
+    mist: !flood && { color: 0x1e4a4f, opacity: 0.38, count: 40, radius: 12, size: [2.5, 5], height: [0.05, 0.6], drift: [0.05, 0.08], floorMin: WATER_Y },
+    motes: { color: 0x9ab8b0 },
+  });
+}
 
 function enemies(L) {
   const dormant = (id, pos, opts) => L.enemy('drowned', pos, { id, idle: 'dormant', ...opts });
@@ -166,7 +186,7 @@ function visibility(L) {
           if (rule) zones.push([c, rule]);
           continue;
         }
-        if (skip.has(c)) continue;
+        if (skip.has(c) || c.userData.noCull) continue;
         box.setFromObject(c);
         if (box.isEmpty()) continue;
         const ctr = box.getCenter(new THREE.Vector3());

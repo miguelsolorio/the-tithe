@@ -25,7 +25,7 @@ export function regionCulling(L, far = []) {
     part.house.name = 'upstairs:house';
     part.attic.name = 'upstairs:attic';
     for (const c of [...group.children]) {
-      if (enemyRoots.has(c)) continue;
+      if (enemyRoots.has(c) || c.userData.noCull) continue;
       box.setFromObject(c);
       if (box.isEmpty()) continue;
       const dest = box.min.x > SPLIT_X ? part.attic : box.max.x < SPLIT_X ? part.house : null;

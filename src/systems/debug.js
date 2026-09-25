@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import { ITEM_INFO } from './inventory.js';
+import { ITEM_INFO, CONSUMABLES } from './inventory.js';
 import { CONFIG } from '../config.js';
 
 // ?debug: FPS counter and console helpers on window.game:
 //   game.teleport(level, spawn?)  level = id ('cistern'), index (1-7) or name
 //   game.spawn(type, distance?)   type = acolyte | hound | drowned | lamprey | skinless | wallMaw | mother
-//   game.give(item)               knife | revolver | shotgun | phone | fuse | crowbar | valve | ammo | shells | bandage | all
+//   game.give(item)               knife | revolver | shotgun | phone | fuse | crowbar | valve | ammo | shells | bandage | health | all
 //   game.god(on?)                 toggle god mode (no damage)
 //   game.kill()                   kill every enemy in the level
 //   game.flag(name) / game.flags  story flags
@@ -41,6 +41,7 @@ export function installDebug(game) {
       for (const id of Object.keys(ITEM_INFO)) inv.addItem(id, { silent: true });
       inv.addAmmo('revolver', 36);
       inv.addAmmo('shotgun', 16);
+      inv.addConsumable('bandage', CONSUMABLES.bandage.max);
       return 'gave everything';
     }
     if (item === 'ammo') {
@@ -51,11 +52,15 @@ export function installDebug(game) {
       inv.addAmmo('shotgun', 8);
       return '+8 shells';
     }
-    if (item === 'bandage' || item === 'health') {
+    if (item === 'bandage') {
+      inv.addConsumable('bandage');
+      return `bandages: ${inv.count('bandage')}`;
+    }
+    if (item === 'health') {
       game.player.heal(CONFIG.player.maxHealth);
       return 'healed';
     }
-    if (!ITEM_INFO[item]) return `unknown item: ${item}. Try ${Object.keys(ITEM_INFO).join(', ')}, ammo, shells, bandage, all`;
+    if (!ITEM_INFO[item]) return `unknown item: ${item}. Try ${Object.keys(ITEM_INFO).join(', ')}, ammo, shells, bandage, health, all`;
     inv.addItem(item);
     return `gave ${item}`;
   };

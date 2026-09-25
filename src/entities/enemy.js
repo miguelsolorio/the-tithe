@@ -347,6 +347,7 @@ export class Enemy {
     const bx = before.x;
     const bz = before.z;
     level.physics.move(this.move, Math.sin(this.yaw) * step, Math.cos(this.yaw) * step, dt);
+    if (this.move.contacts.length) this.game.props.touch(this.move, Math.sin(this.yaw) * s, Math.cos(this.yaw) * s, false, 0.7);
     const moved = Math.hypot(this.pos.x - bx, this.pos.z - bz);
     this.speed = moved / Math.max(dt, 1e-4);
     // Stuck on something: force a repath soon.
@@ -461,7 +462,7 @@ export class Enemy {
       const L = g.levels.builderFor(this.level);
       g.pickups.create(L, { id: `drop:${this.id}`, kind: drop.kind, amount: drop.amount, pos });
     }
-    g.events.emit('enemyKilled', this);
+    g.events.emit('enemyKilled', this, weapon);
   }
 
   animate(dt) {

@@ -7,10 +7,11 @@ import { buildBuses, createHelpers } from './audio/core.js';
 import { DEPTHS_SFX, heart } from './audio/sfx-depths.js';
 import { WEAPONS_SFX, FOOTSTEPS } from './audio/sfx-weapons.js';
 import { WORLD_SFX } from './audio/sfx-world.js';
+import { AMBIENT_SFX } from './audio/sfx-ambient.js';
 import { MUSIC, createBed, strings } from './audio/music.js';
 import { LOOPS } from './audio/loops.js';
 
-const SFX = { ...DEPTHS_SFX, ...WEAPONS_SFX, ...WORLD_SFX };
+const SFX = { ...DEPTHS_SFX, ...WEAPONS_SFX, ...WORLD_SFX, ...AMBIENT_SFX };
 
 // Reverb return level per zone (dry field -> big chapel -> long wet cistern
 // -> shorter wet caves), crossfaded alongside the bed on setZone().
@@ -80,11 +81,13 @@ export class AudioEngine {
   }
 
   // pos: {x,y,z} for an HRTF one-shot, omit for non-positional (UI/global).
-  play(name, { pos, gain = 1 } = {}) {
+  // music: route to the music bus (bed-level ambience that a hushed world
+  // bus shouldn't bury, e.g. wolves heard through the house walls).
+  play(name, { pos, gain = 1, music = false } = {}) {
     if (!this.ready) return;
     const fn = SFX[name];
     if (!fn) { this._warnOnce(name); return; }
-    const dest = pos && !PLAYER_SFX.has(name) ? this.worldBus : this.sfxBus;
+    const dest = music ? this.musicBus : pos && !PLAYER_SFX.has(name) ? this.worldBus : this.sfxBus;
     try { fn(this.H, dest, pos || null, gain); }
     catch (e) { console.error(`[audio] play('${name}') failed:`, e); }
   }

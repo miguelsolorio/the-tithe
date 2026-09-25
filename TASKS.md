@@ -76,3 +76,24 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 - [x] Menus fit a sideways phone (scrollable screens, compact sizes, pause menu side by side); touch control lists and tutorial lines; HUD hidden behind menus on touch
 - [x] Phones render at 1× pixel ratio with a 512 px flashlight shadow
 - [ ] Play-test on a real iPhone and Android phone (so far tested only in emulated iPhone 13 portrait and landscape)
+
+### Inventory
+- [x] Bandages are carried (up to 3, `CONFIG.bandageMax`) instead of used on pickup; press `4` (or tap the slot on touch) to heal 40. Refused at full health or with none left; saved in checkpoints
+- [x] Item row split into three groups: weapons numbered 1–3 (fixed slots), consumables from 4 with a count, key items (phone, crowbar, fuse, valve) smaller and unnumbered
+
+### Interactive environment
+- [x] Pushable furniture: walking into chairs, crates, barrels and trunks shoves them (they spin when pushed off-centre, scrape, knock into each other); sprinting into a chair or crate, or a hard knife or bullet hit, tips it over with a thud that enemies hear. Enemies shove props too. Nav rebuilds when a prop comes to rest
+- [x] Shelves spill: stabbing or shooting a bookshelf knocks books out (knife 2–4, revolver 1–3, shotgun pellets 0–2 each), leaving gaps; they tumble and settle flat on the floor. Storage shelves drop jars (which shatter), boxes and cans
+- [x] No draw-call cost at rest: interactive props stay in the static batch, and touching one collapses its vertex range and swaps in the live object (`src/systems/props.js`, `hideRange` in `src/world/batcher.js`, part tags via `Kit.tag`)
+- [x] Wear: knife hits leave gouges (and the odd split along the grain), bullets leave splintered holes. The marks are projected decals clipped to the prop's surface and stay on it when it moves (one draw call per damaged prop, `src/systems/propDamage.js`). Each hit sprays splinters and flicks off wood chips, which get bigger as the prop wears down. At `hp` a chair gives way into `chairBroken`, and everything else bursts into planks (`hp`/`breaksInto` in `interactive.js`)
+
+### Analytics
+- [x] Google Analytics tag (`G-PDB3DT24E5`) in `index.html`
+- [x] Gameplay events (`src/systems/analytics.js`): `game_start`, `level_enter` (with `level_index` for how far players get), `milestone` (story flags, once per run), `enemy_killed` (type, weapon), `item_pickup`, `player_death` (cause), `checkpoint_retry`, `boss_defeated`, `game_complete`, `game_quit`. Dev and `?debug` runs log `[analytics]` to the console instead of sending
+- [ ] Register `level_id`, `level_index`, `enemy_type`, `weapon`, `milestone`, `cause`, `item_id` as custom dimensions in GA Admin
+
+### Atmosphere
+- [x] Shared ambience kit (`src/world/ambience/`): ground mist and flashlight-lit dust motes, corner cobwebs with spiders, floor debris, rats, moths, flies, crows; `dressLevel()` applies it per level (≤ 3 extra draw calls in view), halved on phones
+- [x] Field: wolves howling from the treeline and glowing eyes at night (`field/wolves.js`), crows, night mist; dawn mist
+- [x] Every level dressed: webs in all house/basement/cistern rooms (thick in the attic), debris per room, extra boxes and sheet-covered furniture on the ground floor, rats, moths, flies on the dead, teal mist on the water, crimson haze in the caves and heart, wolves heard through the house walls
+- [ ] Headphone listen-through: the howl, caw, rat and fly sounds were tuned without listening and may need a mix pass

@@ -37,14 +37,16 @@ export class TouchControls {
     for (const ev of ['touchstart', 'touchmove', 'touchend']) this.el.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
     document.addEventListener('gesturestart', (e) => e.preventDefault());
 
-    // Tap the interaction prompt, or a weapon in the item row.
+    // Tap the interaction prompt, a weapon to equip it, or a bandage to use it.
     $('#prompt').addEventListener('pointerdown', (e) => {
       e.preventDefault();
       this.input.tap('KeyE');
     });
     $('#items').addEventListener('pointerdown', (e) => {
-      const id = e.target.closest('.item')?.dataset.id;
-      if (id && game.state === 'playing') game.weapons.equip(id);
+      const el = e.target.closest('.item');
+      if (!el || game.state !== 'playing') return;
+      if (el.dataset.kind === 'weapon') game.weapons.equip(el.dataset.id);
+      else if (el.dataset.kind === 'consumable') game.inventory.useConsumable(el.dataset.id);
     });
 
     // The game is played sideways: turning to portrait pauses.

@@ -56,6 +56,7 @@ Open http://localhost:5199 and click **Begin**. Headphones recommended.
 | Left click | Attack (knife) / fire |
 | R | Reload |
 | 1 / 2 / 3 | Knife / revolver / shotgun |
+| 4 | Use a bandage |
 | Esc | Pause (sensitivity and volume are in the pause menu) |
 
 On phones and tablets (or with `?touch`), on-screen controls take over. Play with the device sideways:
@@ -90,7 +91,7 @@ Add `?debug` to the URL (http://localhost:5199/?debug). It shows an FPS counter 
 | --- | --- |
 | `game.teleport(level, spawn?)` | Jump to a level by id (`'field'`, `'ground'`, `'upstairs'`, `'basement'`, `'cistern'`, `'caves'`, `'heart'`), number 1–7 or name |
 | `game.spawn(type, distance?)` | Spawn `acolyte`, `hound`, `drowned`, `lamprey`, `skinless`, `wallMaw` or `mother` in front of you |
-| `game.give(item)` | `knife`, `revolver`, `shotgun`, `phone`, `fuse`, `crowbar`, `valve`, `ammo`, `shells`, `bandage` or `all` |
+| `game.give(item)` | `knife`, `revolver`, `shotgun`, `phone`, `fuse`, `crowbar`, `valve`, `ammo`, `shells`, `bandage` (+1 carried), `health` (full heal) or `all` |
 | `game.god(on?)` | Toggle god mode (no damage) |
 | `game.kill()` | Kill every enemy in the level |
 | `game.flag(name)` | Set a story flag |
@@ -101,7 +102,7 @@ Add `?debug` to the URL (http://localhost:5199/?debug). It shows an FPS counter 
 
 Choices made where the brief left room:
 
-- **Bandages heal on pickup** (+40). There is no separate heal key, and a bandage stays on the ground if you are at full health.
+- **Bandages are carried** (up to 3) and used with `4` for +40. A bandage stays on the ground when you already carry 3.
 - **Sprint is unlimited**, but sprinting and splashing are loud: enemies hear you from farther away.
 - **Levels are separate areas** joined by stairs, ladders and hatches, with a short fade. That keeps each area fast to render and makes the cabin's small exterior and huge interior possible.
 - **Key items open the next area**: phone → cabin door, knife → stair ropes, fuse → basement door, crowbar → cistern grate, valve wheel → sluice gate, shotgun → the sphincter to the heart.
