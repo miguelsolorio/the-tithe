@@ -418,6 +418,55 @@ button.secondary:hover {
   accent-color: var(--blood-bright);
 }
 
+/* Pause: menu on the left, controls reference on the right. */
+.screen-inner.pause-layout {
+  width: min(860px, 92vw);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 56px;
+}
+
+.pause-menu {
+  flex: 0 0 auto;
+}
+
+.pause-controls {
+  padding-left: 48px;
+  border-left: 1px solid rgba(216, 204, 176, 0.15);
+  text-align: left;
+}
+
+.pause-controls h3 {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+
+.pause-controls .controls {
+  grid-template-columns: auto;
+  justify-content: start;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  .screen-inner.pause-layout {
+    flex-direction: column;
+    gap: 24px;
+  }
+  .pause-controls {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .pause-controls .controls {
+    grid-template-columns: repeat(2, auto);
+  }
+}
+
 @media (max-width: 640px) {
   .controls {
     grid-template-columns: repeat(2, auto);

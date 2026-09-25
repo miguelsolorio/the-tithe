@@ -285,6 +285,7 @@ class Game {
     this.state = 'paused';
     this.pausedAt = performance.now();
     this.hud.screen('pause');
+    this.audio.setPaused(true);
     this.input.releaseLock();
   }
 
@@ -292,6 +293,7 @@ class Game {
     if (this.state !== 'paused') return;
     this.state = 'playing';
     this.hud.screen(null);
+    this.audio.setPaused(false);
     this.input.requestLock();
   }
 
@@ -299,6 +301,7 @@ class Game {
     this.hud.screen(null);
     this.hud.clearMessages();
     this.state = 'playing';
+    this.audio.setPaused(false);
     this.input.requestLock();
     await this.levels.restartFromCheckpoint();
   }
@@ -308,6 +311,7 @@ class Game {
     this.levels.disposeAll();
     this.audio.setZone(null);
     this.audio.setDread(0);
+    this.audio.setPaused(false);
     this.hud.hide();
     this.hud.screen('title');
     if (LevelManager.loadSaved()) $('#btn-continue').classList.remove('hidden');

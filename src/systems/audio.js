@@ -53,8 +53,17 @@ export class AudioEngine {
 
   setVolume(v01) {
     this._volume = v01;
-    if (!this.ready) return;
+    if (!this.ready || this._paused) return;
     this.master.gain.setTargetAtTime(v01, this.ctx.currentTime, 0.05);
+  }
+
+  // Silences everything while the game is paused. Beds and loops keep
+  // running on their timers, so this fades the master rather than suspending
+  // the context, which would bunch every scheduled note on resume.
+  setPaused(paused) {
+    this._paused = paused;
+    if (!this.ready) return;
+    this.master.gain.setTargetAtTime(paused ? 0 : this._volume, this.ctx.currentTime, 0.1);
   }
 
   _warnOnce(key) {
