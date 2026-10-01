@@ -1,7 +1,8 @@
-// Records the 30-second README demo (docs/demo/demo.mp4) from a
+// Records the 45-second README demo (docs/demo/demo.mp4) from a
 // running dev server with headless Chrome and ffmpeg. Stops short of the
-// heart: the final boss never appears. Short clips of the main action, hard
-// cut together (no fades between them).
+// heart: the final boss never appears. The animated title card opens it and
+// dives into the game; short clips of the main action are hard cut together
+// (no fades between them); the card closes it.
 //
 //   npm run dev                       (or the stable server: GAME_URL=http://localhost:5299)
 //   npm run demo                      full video with sound (about six minutes)
@@ -39,7 +40,6 @@ const WIDTH = 1280;
 const HEIGHT = 720;
 // Rendered larger and scaled down (the game has no antialiasing).
 const SCALE = 1.5;
-const PLAY_URL = 'miguelsolorio.github.io/the-tithe';
 
 // Each segment: `seconds` long; `level` starts a fresh debug run there (god
 // mode); `flags` are set first; `weapon` hands over every item and draws that
@@ -47,18 +47,17 @@ const PLAY_URL = 'miguelsolorio.github.io/the-tithe';
 // `subtitles: false` hides the level's own lines where they'd be out of place.
 const SEGMENTS = [
   {
-    name: 'title',
-    seconds: 1.5,
-    setup: `await game.wait(1200);`,
-  },
-  {
-    // Her phone, ringing in the grass.
+    // The title card draws in over the field at dusk, then dives through the
+    // seal to her phone, ringing in the grass.
     name: 'phone',
     level: 'field',
-    seconds: 3,
-    setup: `game.place(-6.3, 12.7, -7.85, 10.46, -0.12);`,
+    intro: 4.2,
+    seconds: 6.6,
+    setup: `game.place(-5.3, 14.1, -7.85, 10.46, -0.02);`,
     script: `
       const phone = demo.find('phone');
+      yield* demo.wait(3.5);
+      yield* demo.face(phone.pos, 0.7, { rate: 2.5, pitch: -0.12 });
       yield* demo.walkTo(phone.pos, { stop: 1.05, look: [phone.pos.x, 0.2, phone.pos.z] });
       game.press('KeyF');
       yield* demo.face(phone.pos, 0.3, { rate: 6 });
@@ -95,20 +94,44 @@ const SEGMENTS = [
     `,
   },
   {
-    // Inside the impossible house: down the hall to the barricaded stairs.
-    name: 'hall',
+    // Inside the impossible house: the foyer under its chandelier, looking on
+    // toward the stair hall.
+    name: 'foyer',
     level: 'ground',
-    seconds: 4.65,
-    setup: `game.place(0.4, -1.2, -16, -2.1, 0.02);`,
+    seconds: 2.2,
+    setup: `game.player.flashOn = true; game.place(-0.2, 7.2, 0.5, 3.5, 0.12);`,
     script: `
-      const ropes = [3, 1.1, -3.8];
-      yield* demo.wait(0.4);
-      yield* demo.face(ropes, 0.5, { rate: 4 });
-      yield* demo.walkTo([3, -2.6], { stop: 0.3, look: ropes });
-      yield* demo.face(ropes, 0.2, { rate: 6 });
-      demo.use();
       demo.filler = true;
-      yield* demo.face([3, 3.8, -9.5], 2.5, { rate: 1.8 });
+      yield* demo.walkTo([0.6, 2.4], { speed: 0.45, stop: 0.3, look: [0.5, 2.6, 3.5], until: () => game.player.position.z < 5.4 });
+      yield* demo.walkTo([0.9, 1.0], { speed: 0.45, stop: 0.3, look: [2.5, 1.8, -6.5] });
+    `,
+  },
+  {
+    // The dining room: an acolyte prays at the head of the rotten table.
+    name: 'dining',
+    level: 'ground',
+    seconds: 2.0,
+    subtitles: false,
+    setup: `game.player.flashOn = true; game.place(-3.0, -3.6, -5.5, -10.6, 0);`,
+    script: `
+      demo.filler = true;
+      yield* demo.walkTo([-4.2, -5.6], { speed: 0.45, stop: 0.3, look: [-5.5, 1.2, -10.6] });
+      yield* demo.face([-5.5, 1.2, -10.6], 2);
+    `,
+  },
+  {
+    // The library: pull the protruding book and the shelf grinds aside.
+    name: 'library',
+    level: 'ground',
+    seconds: 2.8,
+    setup: `game.player.flashOn = true; game.place(11.3, -5.2, 13.2, -5.5, -0.02);`,
+    script: `
+      const book = [13.0, 1.55, -5.5];
+      yield* demo.face(book, 0.45, { rate: 6 });
+      demo.use();
+      yield* demo.face([14, 1.4, -5.5], 1.6, { rate: 2 });
+      demo.filler = true;
+      yield* demo.walkTo([13.6, -5.5], { speed: 0.5, stop: 0.3, look: [20.3, 1.0, -5.5] });
     `,
   },
   {
@@ -117,7 +140,7 @@ const SEGMENTS = [
     level: 'ground',
     flags: ['chapel.open', 'chapel.lit'],
     weapon: 'revolver',
-    seconds: 4.9,
+    seconds: 3.0,
     subtitles: false,
     setup: `game.player.flashOn = true; game.place(15.4, -5.5, 20.3, -5.5, -0.04);`,
     script: `
@@ -133,11 +156,83 @@ const SEGMENTS = [
     `,
   },
   {
+    // Upstairs, the ritual room: acolytes in antler masks praying at the altar.
+    name: 'ritual',
+    level: 'upstairs',
+    seconds: 2.8,
+    setup: `game.place(-2.6, -6.4, 0.25, -11, 0.05);`,
+    script: `
+      demo.filler = true;
+      yield* demo.walkTo([-1.9, -7.3], { speed: 0.3, stop: 0.3, look: [0.25, 1.3, -11] });
+      yield* demo.face([0.8, 1.4, -11], 3, { rate: 1.2 });
+    `,
+  },
+  {
+    // The bathroom: a tub full of blood, a pale hand on the rim.
+    name: 'bath',
+    level: 'upstairs',
+    seconds: 2.0,
+    subtitles: false,
+    setup: `game.player.flashOn = true; game.place(18.6, -2.4, 20.15, -7.5, -0.15);`,
+    script: `
+      demo.filler = true;
+      yield* demo.walkTo([19.4, -4.9], { speed: 0.4, stop: 0.3, look: [20.15, 0.4, -7.5] });
+      yield* demo.face([20.15, 0.4, -7.5], 2);
+    `,
+  },
+  {
+    // The nursery: look away from the dolls and their heads turn to follow.
+    name: 'nursery',
+    level: 'upstairs',
+    seconds: 2.3,
+    subtitles: false,
+    setup: `game.player.flashOn = true; game.place(12.0, -4.4, 12.25, -6.6, -0.3);`,
+    script: `
+      const cradle = [12.25, 0.6, -6.6];
+      yield* demo.face(cradle, 0.6, { rate: 3 });
+      yield* demo.face([14.75, 0.8, -9.1], 0.9, { rate: 4 });
+      demo.filler = true;
+      yield* demo.face(cradle, 2, { rate: 4 });
+    `,
+  },
+  {
+    // The attic: a crowd of mannequins, all turned toward the hatch.
+    name: 'attic',
+    level: 'upstairs',
+    seconds: 2.0,
+    subtitles: false,
+    setup: `game.player.flashOn = true; game.place(44.6, 0, 50, 0, 0.02, 3.4);`,
+    script: `
+      demo.filler = true;
+      yield* demo.walkTo([46.2, 0.3], { speed: 0.35, stop: 0.3, look: [50, 1.5 + 3.4, 0] });
+      yield* demo.face([50, 4.9, 0], 2);
+    `,
+  },
+  {
+    // The flooded laundry: something rises from the water between the sheets.
+    name: 'laundry',
+    level: 'basement',
+    weapon: 'revolver',
+    seconds: 3.1,
+    subtitles: false,
+    setup: `game.player.flashOn = true; game.place(-2.1, 4.5, -11, 4.2, -0.04);`,
+    script: `
+      yield* demo.walkTo([-3.6, 4.5], { speed: 0.8, stop: 0.3, look: [-11, 1.2, 4.2] });
+      const e = demo.closest('drowned');
+      yield* demo.track(e, 1.0, { rate: 3 });
+      yield* demo.shoot(e);
+      yield* demo.track(e, 0.45);
+      yield* demo.shoot(e, { kill: true });
+      demo.filler = true;
+      yield* demo.wait(1);
+    `,
+  },
+  {
     // The drowned dining room: wade along the feast table toward the diner at its head.
-    name: 'basement',
+    name: 'feast',
     level: 'basement',
     weapon: 'shotgun',
-    seconds: 3,
+    seconds: 2.2,
     subtitles: false,
     setup: `game.player.flashOn = true; game.place(19.6, -4.3, 25.1, -2, -0.06, 0);`,
     script: `
@@ -152,7 +247,7 @@ const SEGMENTS = [
     name: 'cistern',
     level: 'cistern',
     weapon: 'revolver',
-    seconds: 5,
+    seconds: 3.2,
     setup: `game.player.flashOn = true; game.place(22.9, 17.2, 23, 12, -0.08);`,
     script: `
       yield* demo.walkTo([22.8, 16.6], { speed: 0.55, stop: 0.3 });
@@ -170,11 +265,24 @@ const SEGMENTS = [
     `,
   },
   {
-    // The flesh caves: the skinless waiting by the hunter's camp.
-    name: 'caves',
+    // The flesh caves: down the rib gallery.
+    name: 'ribs',
     level: 'caves',
     weapon: 'shotgun',
-    seconds: 3.5,
+    seconds: 2.4,
+    subtitles: false,
+    setup: `game.player.flashOn = true; game.place(14.5, 9.2, 14.5, -10, 0.1);`,
+    script: `
+      demo.filler = true;
+      yield* demo.walkTo([14.5, 5.5], { speed: 0.45, stop: 0.3, look: [14.5, 3.2, -10] });
+    `,
+  },
+  {
+    // The flesh caves: the skinless waiting by the hunter's camp.
+    name: 'womb',
+    level: 'caves',
+    weapon: 'shotgun',
+    seconds: 2.6,
     setup: `game.player.flashOn = true; game.place(-15.6, 23, -24, 23, -0.05);`,
     script: `
       const e = demo.nearest('skinless', [-20.3, 23.3]);
@@ -189,7 +297,7 @@ const SEGMENTS = [
   },
   {
     name: 'end',
-    seconds: 3,
+    seconds: 4.35,
     card: true,
   },
 ];
@@ -202,9 +310,9 @@ for (const s of SEGMENTS) {
 }
 const TOTAL = SEGMENTS.reduce((n, s) => n + s.seconds, 0);
 
-// Runs in the page: the end card, game-time timers, seeded
+// Runs in the page: the title card (branding/sigil.html, animated), game-time timers, seeded
 // randomness, the movement helpers and the timeline itself.
-function installDirector(segments, playUrl, fps) {
+function installDirector(segments, fps) {
   const game = window.game;
   const DT = 1 / fps;
   const AsyncFunction = (async () => {}).constructor;
@@ -214,16 +322,25 @@ function installDirector(segments, playUrl, fps) {
     #fps { display: none !important; }
     body { cursor: none; }
     #demo-fade { position: fixed; inset: 0; background: #000; z-index: 9998; pointer-events: none; }
-    #demo-card { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center;
-      justify-content: center; gap: 28px; opacity: 0; pointer-events: none; background: #000; }
-    #demo-card img { width: min(72vw, 900px); }
-    #demo-card p { margin: 0; font: 22px/1.4 var(--serif); color: var(--bone); letter-spacing: 0.04em; }
-    #demo-card p small { display: block; text-align: center; color: var(--muted); font-size: 17px; }`;
+    #demo-card { position: fixed; inset: 0; width: 100vw; height: 100vh; border: 0; z-index: 9999; opacity: 0;
+      pointer-events: none; background: #050303; }`;
   document.head.append(style);
   const fade = Object.assign(document.createElement('div'), { id: 'demo-fade' });
-  const card = Object.assign(document.createElement('div'), { id: 'demo-card' });
-  card.innerHTML = `<img src="og.png" alt="" /><p>Play it free in your browser<small>${playUrl}</small></p>`;
+  // The social preview's source, animated: pose(t) draws it in (see sigil.html).
+  const card = Object.assign(document.createElement('iframe'), { id: 'demo-card', src: '/branding/sigil.html?kind=og&anim' });
   document.body.append(fade, card);
+  const cardReady = new Promise((r) => card.addEventListener('load', r, { once: true })).then(() => card.contentDocument.fonts.ready);
+  // The card at t seconds into its reveal, `zoom` times larger around the
+  // seal's centre (the intro dives through it; the outro pulls back out of it).
+  const showCard = (opacity, t, zoom = 1) => {
+    card.style.opacity = opacity;
+    if (opacity <= 0) return;
+    const w = card.contentWindow;
+    w.pose(t);
+    const [x, y] = w.sealCenter;
+    card.style.transformOrigin = `${x}px ${y}px`;
+    card.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
+  };
 
   // No tutorial hints in the trailer.
   const say = game.hud.say.bind(game.hud);
@@ -316,6 +433,12 @@ function installDirector(segments, playUrl, fps) {
   }
 
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const smooth = (u) => u * u * (3 - 2 * u);
+  // Seconds the outro takes to pull back out of the seal, and the intro to dive in.
+  const CARD_IN = 1.1;
+  const CARD_OUT = 0.9;
+  // The card's reveal (sigil.html's pose) runs this much faster than written.
+  const CARD_PACE = 1.25;
   const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
   const ease = (rate) => 1 - Math.exp(-rate * DT);
   // [x, z], [x, y, z] or {x, y, z}; y = null means eye height.
@@ -584,12 +707,23 @@ function installDirector(segments, playUrl, fps) {
       const [sy1, sp1] = sway(demo.t + DT);
       game.player.yaw += sy1 - sy0;
       game.player.pitch += sp1 - sp0;
-      // Hard cuts between clips; only the end card fades out at the very end.
+      // Hard cuts between clips. The intro card draws in over the first clip,
+      // then dives through the seal into the game; the outro pulls back out of
+      // the seal over the last clip, draws in and fades to black.
       if (cur.card) {
-        fade.style.opacity = 1;
-        card.style.opacity = clamp((cur.seconds - local) / 0.6, 0, 1);
-        if (game.audio.ready) game.audio.setVolume(0.9 * Math.max(0, 1 - local / 2));
-      } else fade.style.opacity = 0;
+        const enter = smooth(clamp(local / CARD_IN, 0, 1));
+        fade.style.opacity = enter >= 1 ? 1 : 0;
+        const end = clamp((cur.seconds - local) / 0.8, 0, 1);
+        showCard(enter * end, local * CARD_PACE, 1 + 2.5 * (1 - enter) ** 2);
+        if (game.audio.ready) game.audio.setVolume(0.9 * clamp(1 - (local - 1.5) / (cur.seconds - 1.8), 0, 1));
+      } else if (cur.intro && local < cur.intro) {
+        fade.style.opacity = 0;
+        const dive = clamp((local - (cur.intro - CARD_OUT)) / CARD_OUT, 0, 1);
+        showCard(1 - smooth(clamp((dive - 0.45) / 0.55, 0, 1)), local * CARD_PACE, 1 + 9 * dive ** 2.6);
+      } else {
+        fade.style.opacity = 0;
+        showCard(0);
+      }
       if (game.levels.current?.id === 'heart' || !document.querySelector('#boss').classList.contains('hidden')) {
         throw new Error('spoiler guard: the final boss is on screen');
       }
@@ -678,6 +812,7 @@ function installDirector(segments, playUrl, fps) {
   // The demo drives every frame itself.
   game.renderer.setAnimationLoop(null);
   game.lastFrame = Infinity;
+  demo.cardReady = cardReady;
   window.demo = demo;
 }
 
@@ -694,7 +829,8 @@ async function openGame(cdp) {
   await loaded;
   await evaluate(cdp, `new Promise((r) => { const w = () => (window.game ? r() : setTimeout(w, 50)); w(); })`);
   await evaluate(cdp, `game.ready.then(() => document.fonts.ready).then(() => 1)`);
-  await evaluate(cdp, `(${installDirector})(${JSON.stringify(SEGMENTS)}, ${JSON.stringify(PLAY_URL)}, ${FPS})`);
+  await evaluate(cdp, `(${installDirector})(${JSON.stringify(SEGMENTS)}, ${FPS})`);
+  await evaluate(cdp, 'demo.cardReady.then(() => 1)');
 }
 
 function write(file, buf) {
