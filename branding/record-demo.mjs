@@ -75,7 +75,8 @@ const SEGMENTS = [
     // would hold up the real-time audio pass).
     name: 'door',
     level: 'field',
-    seconds: 3,
+    // Cuts as the door opens, before the game's own fade to black.
+    seconds: 1.45,
     setup: `game.inventory.addItem('phone', { silent: true }); game.setFlag('field.phone');
       await game.teleport('field');
       while (game.levels.transitioning) await game.wait(50);
@@ -97,7 +98,7 @@ const SEGMENTS = [
     // Inside the impossible house: down the hall to the barricaded stairs.
     name: 'hall',
     level: 'ground',
-    seconds: 4,
+    seconds: 4.65,
     setup: `game.place(0.4, -1.2, -16, -2.1, 0.02);`,
     script: `
       const ropes = [3, 1.1, -3.8];
@@ -116,7 +117,7 @@ const SEGMENTS = [
     level: 'ground',
     flags: ['chapel.open', 'chapel.lit'],
     weapon: 'revolver',
-    seconds: 4.5,
+    seconds: 4.9,
     subtitles: false,
     setup: `game.player.flashOn = true; game.place(15.4, -5.5, 20.3, -5.5, -0.04);`,
     script: `
@@ -151,7 +152,7 @@ const SEGMENTS = [
     name: 'cistern',
     level: 'cistern',
     weapon: 'revolver',
-    seconds: 4.5,
+    seconds: 5,
     setup: `game.player.flashOn = true; game.place(22.9, 17.2, 23, 12, -0.08);`,
     script: `
       yield* demo.walkTo([22.8, 16.6], { speed: 0.55, stop: 0.3 });
@@ -179,8 +180,7 @@ const SEGMENTS = [
       const e = demo.nearest('skinless', [-20.3, 23.3]);
       yield* demo.walkTo([-18, 23.2], { speed: 0.5, stop: 0.3, look: () => demo.chest(e), until: () => demo.dist(e) < 4 });
       yield* demo.track(e, 0.5, { rate: 4 });
-      yield* demo.shoot(e);
-      yield* demo.track(e, 0.6);
+      // One blast at this range.
       yield* demo.shoot(e, { kill: true });
       demo.filler = true;
       yield* demo.wait(0.3);
@@ -530,6 +530,8 @@ function installDirector(segments, playUrl, fps) {
         for (const el of [game.hud.noticeEl, game.hud.subEl]) el.style.transition = '';
       }
       await s.setup?.(game, demo);
+      // Hard cuts: skip the game's own fade in from black on a level start.
+      if (s.level) game.fx.fade = game.fx.fadeTarget = 0;
       // A cut is far quicker than walking between levels, so free the voice
       // slots the last level's sounds still hold (the engine caps at 40 and
       // holds each for seconds after it ends); otherwise shots get dropped.

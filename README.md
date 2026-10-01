@@ -13,7 +13,7 @@ Every model, texture and sound is generated in code. The only media files are th
 <!-- GitHub only plays uploaded videos inline. After `npm run demo`, drag the new docs/demo/demo.mp4 into any GitHub comment box and replace this URL with the one it inserts. -->
 https://github.com/user-attachments/assets/0a31f2b6-d453-4054-93ee-6397f6f38776
 
-A 45-second look at the field, the house and the depths below, with no final-boss spoilers. Sound on. The file is also in the repo at [`docs/demo/demo.mp4`](docs/demo/demo.mp4).
+A 30-second look at the field, the house and the depths below, with no final-boss spoilers. Sound on. The file is also in the repo at [`docs/demo/demo.mp4`](docs/demo/demo.mp4).
 
 ## Screenshots
 
@@ -126,5 +126,5 @@ Choices made where the brief left room:
 - `src/systems/`: audio, post-processing, HUD helpers, debug
 - `tools/`: standalone viewers for materials, props, creatures and sounds (`npm run dev`, then open e.g. http://localhost:5199/tools/creatures.html)
 - `docs/`: visual and audio direction, level API, screenshots
-- `branding/`: the sigil icon and social preview (`sigil.html`) and `render.mjs`, which renders them into `public/` (`node branding/render.mjs`) and retakes the screenshots from a running dev server (`node branding/render.mjs shots`); `record-demo.mjs` records the 45-second demo in `docs/demo/` (`npm run demo`); `cdp.mjs` is the headless Chrome driver both share
+- `branding/`: the sigil icon and social preview (`sigil.html`) and `render.mjs`, which renders them into `public/` (`node branding/render.mjs`) and retakes the screenshots from a running dev server (`node branding/render.mjs shots`); `record-demo.mjs` records the 30-second demo in `docs/demo/` (`npm run demo`); `cdp.mjs` is the headless Chrome driver both share
 - `public/`: favicon, app icons, web manifest and the social preview image
