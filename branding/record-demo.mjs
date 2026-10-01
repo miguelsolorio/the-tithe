@@ -1,6 +1,7 @@
-// Records the 45-second README demo (docs/demo/demo.mp4) from a
+// Records the 30-second README demo (docs/demo/demo.mp4) from a
 // running dev server with headless Chrome and ffmpeg. Stops short of the
-// heart: the final boss never appears.
+// heart: the final boss never appears. Short clips of the main action, hard
+// cut together (no fades between them).
 //
 //   npm run dev                       (or the stable server: GAME_URL=http://localhost:5299)
 //   npm run demo                      full video with sound (about six minutes)
@@ -47,48 +48,66 @@ const PLAY_URL = 'miguelsolorio.github.io/the-tithe';
 const SEGMENTS = [
   {
     name: 'title',
-    seconds: 2,
+    seconds: 1.5,
     setup: `await game.wait(1200);`,
   },
   {
-    // One take: follow the ringing to her phone, open the cabin door, and walk
-    // into the impossible house: down the hall to the barricaded stairs.
-    name: 'field',
+    // Her phone, ringing in the grass.
+    name: 'phone',
     level: 'field',
-    seconds: 17.5,
-    // The ground floor is built now, not when the door opens (a stall there
-    // would hold up the real-time audio pass).
-    setup: `game.place(-4.8, 15.2, 0, 0, 0.02); await demo.buildNav({ minX: -16, maxX: 12, minZ: -4, maxZ: 24 });
-      game.levels.get('ground');`,
+    seconds: 3,
+    setup: `game.place(-6.3, 12.7, -7.85, 10.46, -0.12);`,
     script: `
       const phone = demo.find('phone');
-      const door = demo.find('cabinFront');
-      yield* demo.wait(0.3);
-      yield* demo.face(phone.pos, 0.6, { pitch: -0.12 });
-      yield* demo.walkTo(phone.pos, { stop: 1.05 });
+      yield* demo.walkTo(phone.pos, { stop: 1.05, look: [phone.pos.x, 0.2, phone.pos.z] });
       game.press('KeyF');
-      yield* demo.face(phone.pos, 0.55, { rate: 6 });
+      yield* demo.face(phone.pos, 0.3, { rate: 6 });
       demo.use();
-      yield* demo.wait(0.3);
-      yield* demo.face([door.pos.x, 1.4, door.pos.z], 0.8, { rate: 3.5 });
-      yield* demo.walkTo([door.pos.x + 0.2, door.pos.z + 1.5], { stop: 0.35 });
-      yield* demo.face([door.pos.x, 1.3, door.pos.z], 0.35, { rate: 7 });
-      demo.use();
-      // The field's lines end at the door, so the house's own lines play inside.
+      yield* demo.wait(0.5);
+      // Up from the grass to the cabin her photo was taken in.
+      demo.filler = true;
+      yield* demo.face([0, 1.4, 2.5], 2, { rate: 2.5 });
+    `,
+  },
+  {
+    // The cabin door, phone in hand (the field is rebuilt without its ring).
+    // The ground floor is built now, not when the door opens (a stall there
+    // would hold up the real-time audio pass).
+    name: 'door',
+    level: 'field',
+    seconds: 3,
+    setup: `game.inventory.addItem('phone', { silent: true }); game.setFlag('field.phone');
+      await game.teleport('field');
+      while (game.levels.transitioning) await game.wait(50);
       game.hud.clearMessages();
-      // Through the door (the game fades) and into the ground floor.
-      yield* demo.until(() => game.levels.current.id === 'ground' && !game.levels.transitioning);
-      demo.nav = null;
+      game.player.flashOn = true;
+      game.place(0.15, 6.1, 0, 2.5, -0.02);
+      game.levels.get('ground');`,
+    script: `
+      const door = demo.find('cabinFront');
+      yield* demo.walkTo([door.pos.x + 0.2, door.pos.z + 1.5], { stop: 0.35, look: [door.pos.x, 1.4, door.pos.z] });
+      yield* demo.face([door.pos.x, 1.3, door.pos.z], 0.25, { rate: 7 });
+      demo.use();
+      game.hud.clearMessages();
+      demo.filler = true;
+      yield* demo.wait(2);
+    `,
+  },
+  {
+    // Inside the impossible house: down the hall to the barricaded stairs.
+    name: 'hall',
+    level: 'ground',
+    seconds: 4,
+    setup: `game.place(0.4, -1.2, -16, -2.1, 0.02);`,
+    script: `
       const ropes = [3, 1.1, -3.8];
-      yield* demo.wait(0.3);
-      yield* demo.walkTo([0.4, -1.9], { stop: 0.4 });
-      yield* demo.face([-16, 1.5, -2.1], 1.1, { rate: 3 });
-      yield* demo.face(ropes, 0.6, { rate: 3.5 });
+      yield* demo.wait(0.4);
+      yield* demo.face(ropes, 0.5, { rate: 4 });
       yield* demo.walkTo([3, -2.6], { stop: 0.3, look: ropes });
-      yield* demo.face(ropes, 0.3, { rate: 6 });
+      yield* demo.face(ropes, 0.2, { rate: 6 });
       demo.use();
       demo.filler = true;
-      yield* demo.face([3, 3.8, -9.5], 2.5, { rate: 1.6 });
+      yield* demo.face([3, 3.8, -9.5], 2.5, { rate: 1.8 });
     `,
   },
   {
@@ -97,15 +116,15 @@ const SEGMENTS = [
     level: 'ground',
     flags: ['chapel.open', 'chapel.lit'],
     weapon: 'revolver',
-    seconds: 5.5,
+    seconds: 4.5,
     subtitles: false,
     setup: `game.player.flashOn = true; game.place(15.4, -5.5, 20.3, -5.5, -0.04);`,
     script: `
       const e = demo.spawnAt('acolyte', 20.5, -7.2);
-      yield* demo.wait(0.5);
-      yield* demo.track(e, 1.2, { rate: 3 });
+      yield* demo.wait(0.1);
+      yield* demo.track(e, 1.0, { rate: 3.5 });
       yield* demo.shoot(e);
-      yield* demo.track(e, 0.6);
+      yield* demo.track(e, 0.5);
       yield* demo.shoot(e, { kill: true });
       demo.filler = true;
       yield* demo.wait(0.4);
@@ -117,14 +136,13 @@ const SEGMENTS = [
     name: 'basement',
     level: 'basement',
     weapon: 'shotgun',
-    seconds: 5,
+    seconds: 3,
     subtitles: false,
-    setup: `game.player.flashOn = true; game.place(18.8, -4.3, 25.1, -2, -0.06, 0);`,
+    setup: `game.player.flashOn = true; game.place(19.6, -4.3, 25.1, -2, -0.06, 0);`,
     script: `
       const diner = [25.1, 1.0, -2];
       demo.filler = true;
-      yield* demo.wait(0.3);
-      yield* demo.walkTo([21.6, -4.4], { stop: 0.3, look: diner });
+      yield* demo.walkTo([21.8, -4.4], { stop: 0.3, look: diner });
       yield* demo.face(diner, 2, { rate: 2 });
     `,
   },
@@ -133,19 +151,18 @@ const SEGMENTS = [
     name: 'cistern',
     level: 'cistern',
     weapon: 'revolver',
-    seconds: 5.5,
-    setup: `game.player.flashOn = true; game.place(23, 18.5, 23, 12, -0.08);`,
+    seconds: 4.5,
+    setup: `game.player.flashOn = true; game.place(22.9, 17.2, 23, 12, -0.08);`,
     script: `
-      yield* demo.wait(0.2);
       yield* demo.walkTo([22.8, 16.6], { speed: 0.55, stop: 0.3 });
       const a = demo.closest('acolyte');
-      yield* demo.track(a, 0.8, { rate: 3 });
+      yield* demo.track(a, 0.6, { rate: 4 });
       yield* demo.shoot(a);
-      yield* demo.track(a, 0.5);
+      yield* demo.track(a, 0.4);
       yield* demo.shoot(a, { kill: true });
-      yield* demo.wait(0.2);
+      yield* demo.wait(0.15);
       const b = demo.closest('acolyte');
-      yield* demo.track(b, 1.0, { rate: 3 });
+      yield* demo.track(b, 0.8, { rate: 3.5 });
       yield* demo.shoot(b, { kill: true });
       demo.filler = true;
       yield* demo.track(demo.closest('acolyte'), 2, { rate: 2 });
@@ -156,24 +173,23 @@ const SEGMENTS = [
     name: 'caves',
     level: 'caves',
     weapon: 'shotgun',
-    seconds: 6,
-    setup: `game.player.flashOn = true; game.place(-13.2, 23, -24, 23, -0.05);`,
+    seconds: 3.5,
+    setup: `game.player.flashOn = true; game.place(-15.6, 23, -24, 23, -0.05);`,
     script: `
       const e = demo.nearest('skinless', [-20.3, 23.3]);
-      yield* demo.wait(0.2);
       yield* demo.walkTo([-18, 23.2], { speed: 0.5, stop: 0.3, look: () => demo.chest(e), until: () => demo.dist(e) < 4 });
-      yield* demo.track(e, 0.6, { rate: 4 });
+      yield* demo.track(e, 0.5, { rate: 4 });
       yield* demo.shoot(e);
-      yield* demo.track(e, 0.7);
+      yield* demo.track(e, 0.6);
       yield* demo.shoot(e, { kill: true });
-      yield* demo.wait(0.4);
       demo.filler = true;
+      yield* demo.wait(0.3);
       yield* demo.walkTo([-20.5, 23.2], { speed: 0.4, stop: 0.3 });
     `,
   },
   {
     name: 'end',
-    seconds: 3.5,
+    seconds: 3,
     card: true,
   },
 ];
@@ -186,7 +202,7 @@ for (const s of SEGMENTS) {
 }
 const TOTAL = SEGMENTS.reduce((n, s) => n + s.seconds, 0);
 
-// Runs in the page: the fade overlay, end card, game-time timers, seeded
+// Runs in the page: the end card, game-time timers, seeded
 // randomness, the movement helpers and the timeline itself.
 function installDirector(segments, playUrl, fps) {
   const game = window.game;
@@ -313,7 +329,6 @@ function installDirector(segments, playUrl, fps) {
     setup: s.setup ? new AsyncFunction('game', 'demo', s.setup) : null,
     script: s.script ? new GeneratorFunction('game', 'demo', s.script) : null,
   }));
-  const FADE = 0.45;
   let i = -1;
   let local = 0;
   let cur = null;
@@ -567,12 +582,12 @@ function installDirector(segments, playUrl, fps) {
       const [sy1, sp1] = sway(demo.t + DT);
       game.player.yaw += sy1 - sy0;
       game.player.pitch += sp1 - sp0;
-      const edge = Math.min(local / FADE, (cur.seconds - local) / FADE);
+      // Hard cuts between clips; only the end card fades out at the very end.
       if (cur.card) {
         fade.style.opacity = 1;
-        card.style.opacity = clamp(Math.min((local - 0.3) / 0.8, (cur.seconds - local) / 0.8), 0, 1);
-        if (game.audio.ready) game.audio.setVolume(0.9 * Math.max(0, 1 - local / 2.5));
-      } else fade.style.opacity = clamp(1 - edge, 0, 1);
+        card.style.opacity = clamp((cur.seconds - local) / 0.6, 0, 1);
+        if (game.audio.ready) game.audio.setVolume(0.9 * Math.max(0, 1 - local / 2));
+      } else fade.style.opacity = 0;
       if (game.levels.current?.id === 'heart' || !document.querySelector('#boss').classList.contains('hidden')) {
         throw new Error('spoiler guard: the final boss is on screen');
       }
@@ -635,11 +650,11 @@ function installDirector(segments, playUrl, fps) {
           await new Promise((r) => realSetTimeout(r, 3));
           continue;
         }
-        // Falling behind matters outside the fades (a level build under the
-        // field's door fade stalls a frame, harmlessly).
-        const inFade = local < FADE || local > cur.seconds - FADE;
+        // A clip's first frames can stall on shader and level setup; falling
+        // behind matters after that.
+        const settling = local < 0.15;
         demo.lagNow = due - n * DT;
-        if (!inFade && game.audio.ready && demo.lagNow > lag.s) lag = { s: demo.lagNow, where: `${cur.name} ${local.toFixed(1)}s` };
+        if (!settling && game.audio.ready && demo.lagNow > lag.s) lag = { s: demo.lagNow, where: `${cur.name} ${local.toFixed(1)}s` };
         const t0 = performance.now();
         demo.frame(true);
         const c = (cost[cur.name] ||= { ms: 0, frames: 0, max: 0 });
@@ -792,7 +807,8 @@ if (!silent) {
   // Each segment's audio, cut from the recording by audio-clock time.
   const parts = rec.marks.map((m, k) => {
     const from = onset + (m.at - rec.blip);
-    const f = Math.min(0.15, m.seconds / 4);
+    // A few milliseconds of fade at each cut, just to avoid clicks.
+    const f = 0.015;
     return `[1:a]atrim=start=${from.toFixed(4)}:duration=${m.seconds},asetpts=PTS-STARTPTS,apad=whole_dur=${m.seconds},afade=t=in:d=${f},afade=t=out:st=${(m.seconds - f).toFixed(3)}:d=${f}[a${k}]`;
   });
   audioFilter = [
