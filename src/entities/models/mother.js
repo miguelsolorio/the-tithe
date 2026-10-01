@@ -420,12 +420,18 @@ export function buildMother(opts = {}) {
   rig.add('handR', arms[1].ha);
   const tgt = [rig.addVirtual('tgtL'), rig.addVirtual('tgtR')];
   rig.finalize();
-  const anim = new Animator(rig, { lash: 0.2, slam: 0.25, spit: 0.2, hurt: 0.08, dead: 0.2, summon: 0.4, rise: 0.05, submerged: 0.05 }, 0.4);
+  const anim = new Animator(rig, { lash: 0.2, slam: 0.25, spit: 0.2, hurt: 0.08, dead: 0.2, summon: 0.4, rise: 0.05, submerged: 0.05, kill: 0.5 }, 0.4);
   let t = 0, lashSide = 'right', prevState = null, prevTime = 0;
+  // Humming (0..1, from Mother): head tilted to listen, hands cradling the cage.
+  // grab/grabSide: the kill-cam hand target in root space.
+  let hum = 0, grab = null, grabSide = 0;
   const seed = Math.random() * 50;
 
   const setHand = (r, i, v) => r.p(i ? 'tgtR' : 'tgtL', v.x, v.y, v.z);
-  const idleHand = (i) => { const s = i ? -1 : 1; return V(s * 2.6 + 0.1 * Math.sin(t * 0.35 + i), 1.1 + 0.2 * Math.sin(t * 0.6 + i * 2), 1.5); };
+  const rest = (i) => { const s = i ? -1 : 1; return V(s * 2.6 + 0.1 * Math.sin(t * 0.35 + i), 1.1 + 0.2 * Math.sin(t * 0.6 + i * 2), 1.5); };
+  // Rocking the cage like a cradle.
+  const cradle = (i) => { const s = i ? -1 : 1; return V(s * 0.95 + 0.18 * Math.sin(t * 1.15), 3.05 + 0.1 * Math.sin(t * 2.3 + i), 1.35); };
+  const idleHand = (i) => (hum > 0.001 ? rest(i).lerp(cradle(i), hum) : rest(i));
   const arc = (phi) => V(Math.sin(phi) * 4.4, 1.4, Math.cos(phi) * 4.4);
 
   const POSES = {
@@ -434,9 +440,9 @@ export function buildMother(opts = {}) {
       r.r('hips', 0.08 + 0.02 * br, 0.05 * sw, 0.03 * sw);
       r.r('waist', 0.06, 0.04 * sw, 0);
       r.r('chest', 0.04 + 0.03 * br, 0, -0.03 * sw);
-      r.r('neck', 0.25 + 0.06 * wobble(t * 0.25, seed), 0.15 * wobble(t * 0.18, seed + 1), 0.1 * sw);
-      r.r('head', 0.15, 0, 0.12 * wobble(t * 0.3, seed + 2));
-      r.r('jaw', 0.08 + 0.06 * Math.max(0, wobble(t * 0.5, seed + 3)));
+      r.r('neck', 0.25 + 0.06 * wobble(t * 0.25, seed) + 0.1 * hum, 0.15 * wobble(t * 0.18, seed + 1) * (1 - hum), 0.1 * sw + 0.22 * hum);
+      r.r('head', 0.15 + 0.08 * hum, 0, 0.12 * wobble(t * 0.3, seed + 2) + 0.4 * hum + 0.06 * hum * Math.sin(t * 1.15));
+      r.r('jaw', 0.08 + 0.06 * Math.max(0, wobble(t * 0.5, seed + 3)) * (1 - hum));
       setHand(r, 0, idleHand(0));
       setHand(r, 1, idleHand(1));
       r.r('handL', 0.3, 0, 0.2);
@@ -524,6 +530,15 @@ export function buildMother(opts = {}) {
       r.ra('jaw', 0.5 * k);
       for (let i = 0; i < 2; i++) setHand(r, i, idleHand(i).add(V((i ? 1 : -1) * 0.8 * k, 1.5 * k, -0.5 * k)));
     },
+    // Kill-cam: one hand closes around you and lifts you to her face; she
+    // tilts her head to look and keeps humming.
+    kill(r) {
+      POSES.idle(r);
+      if (grab) setHand(r, grabSide, grab);
+      r.r('neck', 0.4, 0.15 * (grabSide ? -1 : 1), 0.2);
+      r.r('head', 0.3, 0, 0.35);
+      r.r('jaw', 0.1);
+    },
     dead(r, s) {
       POSES.idle(r);
       const tt = s.stateTime;
@@ -601,6 +616,9 @@ export function buildMother(opts = {}) {
     }
     prevState = s.state;
     prevTime = s.stateTime;
+    hum = sIn?.hum ?? 0;
+    grab = sIn?.grab ?? null;
+    grabSide = sIn?.grabSide ?? 0;
     anim.update(dt, s, (r, st) => (POSES[st.state] || POSES.idle)(r, st));
     solveArms();
     keepUpright(cage, root, 0.04 * Math.sin(t * 0.9), 0.03 * Math.sin(t * 0.7));
@@ -626,7 +644,7 @@ export function buildMother(opts = {}) {
     ],
     lights: eyes.map((e) => light(e, 0, 0, 0.05, 0xff2010, 3, 8, 0.15)),
     timings: TIMINGS,
-    states: ['submerged', 'rise', 'idle', 'lash', 'slam', 'spit', 'summon', 'hurt', 'dead'],
+    states: ['submerged', 'rise', 'idle', 'lash', 'slam', 'spit', 'summon', 'hurt', 'dead', 'kill'],
     cage, sisterSlot, mouth,
     hands: [arms[0].palm, arms[1].palm],
     anchors,

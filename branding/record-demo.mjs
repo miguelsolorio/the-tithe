@@ -400,6 +400,9 @@ function installDirector(segments, fps) {
   };
   const otherRandom = Math.random;
   let simRandom = rng('sim');
+  // Headless Chrome never has window focus, and the game mutes without it.
+  game.audio.setFocused(true);
+  game.audio.setFocused = () => {};
   // The audio engine draws randomness while synthesising (and skips it when
   // its voices are full, which depends on real time), so it uses the other
   // stream and can't shift the simulation's.

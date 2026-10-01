@@ -6,12 +6,18 @@ import { ENEMY_TYPES } from './types.js';
 
 const _sph = [];
 const _oc = new THREE.Vector3();
+const _fwd = new THREE.Vector3();
+const _to = new THREE.Vector3();
+const HUNTING = ['chase', 'attack', 'notice', 'lunge', 'rise', 'hurt', 'kill'];
 
 export class EnemyManager {
   constructor(game) {
     this.game = game;
     this.lastBraam = -99;
+    this.lastSting = -99;
     this.dread = 0;
+    // 0..1, how close the nearest thing hunting you is (screen warp, heartbeat).
+    this.fear = 0;
     this.extraTypes = {};
   }
 
@@ -45,26 +51,48 @@ export class EnemyManager {
     return this.create(level, { type, pos: pos.clone(), ...opts });
   }
 
-  // An enemy just noticed the player: stinger + raise the Dread layer.
+  // An enemy just noticed the player: stinger + raise the Dread layer. Close
+  // and in view (or right behind you) it's a jump scare as well.
   spotted(enemy, force = false) {
     const g = this.game;
     this.dread = Math.max(this.dread, 0.8);
-    if (force || g.time - this.lastBraam > 22) {
+    if (force || g.time - this.lastBraam > 12) {
       this.lastBraam = g.time;
       g.audio.play('braam', { gain: 0.7 });
+    }
+    const cam = g.player.camera;
+    cam.getWorldDirection(_fwd);
+    _to.copy(enemy.eye()).sub(cam.position).normalize();
+    const d = enemy.distToPlayer();
+    if ((d < 7 && _fwd.dot(_to) > 0.5) || d < 3.5) {
+      g.fx.scare(0.8);
+      g.player.shake = Math.min(1, g.player.shake + 0.35);
+      if (force || g.time - this.lastSting > 8) {
+        this.lastSting = g.time;
+        g.audio.play('screech', { gain: 0.5 });
+      }
     }
   }
 
   update(dt) {
     const g = this.game;
     const list = this.list;
+    const p = g.player.position;
     let hunting = 0;
+    let nearest = Infinity;
     for (const e of list) {
       e.update(dt);
-      if (!e.dead && ['chase', 'attack', 'notice', 'lunge', 'rise', 'hurt'].includes(e.state) && e.distToPlayer() < 25) hunting++;
+      if (e.dead || !HUNTING.includes(e.state)) continue;
+      const d = e.distToPlayer();
+      if (d < 25) hunting++;
+      if (Math.abs(e.pos.y - p.y) < 2.5) nearest = Math.min(nearest, d);
     }
+    // Fear builds from 6 m in and peaks at arm's length.
+    const k = Math.max(0, Math.min(1, (6 - nearest) / 4.5));
+    const fear = k * k * (3 - 2 * k);
+    this.fear += (fear - this.fear) * Math.min(1, dt * (fear > this.fear ? 3 : 0.8));
+    g.fx.presence = this.fear;
     // Separation: enemies don't stack, and the player can't walk through them.
-    const p = g.player.position;
     const ph = g.levels.current.physics;
     for (let i = 0; i < list.length; i++) {
       const a = list[i];

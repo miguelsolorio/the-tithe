@@ -1,17 +1,24 @@
 import * as THREE from 'three';
 import {
   mesh, pivot, hit, light, instMats, mat, cached, normState, progress, colorLerp,
-  sweep, blob, prof, merge, xf, mirrorX, spike, prep,
-  Rig, Animator, clamp, lerp, smooth, ramp, easeOut, easeIn, bump, wobble, fbm3, PI, TAU,
+  sweep, blob, prof, merge, xf, mirrorX, spike, prep, glowEyes,
+  Rig, Animator, ik3, clamp, lerp, smooth, ramp, easeOut, easeIn, bump, wobble, fbm3, damp, PI, TAU,
 } from './common.js';
-import { humanoidDims, buildHumanoid, rigHumanoid, solveLegs, bipedGait, stand, keepUpright } from './skeleton.js';
+import { humanoidDims, buildHumanoid, rigHumanoid, solveLegs, bipedGait, stand, keepUpright, footCycle } from './skeleton.js';
 
 // Acolyte: hooded cultist in a long blood-red robe, bleached deer skull
 // mask with antlers, ritual knife (right hand) and a lit candle (left hand).
 // Extra state: 'pray' (kneeling, head bowed, candle held up).
+//
+// The crawler: the first time one hunts you it turns its back, folds over
+// backward into a bridge (spine cracking) and comes at you on hands and feet,
+// head upside down, candle in its teeth. Its states: 'turn' (the fold),
+// 'crawlIdle', 'crawl', 'crawlAttack', 'crawlHurt', 'crawlDead', 'crawlKill'.
+// Arms are long for a person, which reads as wrong upright and lets the
+// hands reach the floor in the bridge.
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
-const D = humanoidDims();
+const D = humanoidDims({ upperArm: 0.36, forearm: 0.33 });
 const ROBE = 0x3d0a0f, ROBE_DARK = 0x100305, SKIN = 0xb9a896, WAX = 0xd8caa6;
 
 // Pale bony fist (right hand; left is mirrored). Grip axis along Z at GRIP.
@@ -173,8 +180,8 @@ function assets() {
     A.antlers = merge([antL, mirrorX(antL.clone())]);
     // Sleeves: upper (arm space) and bell-shaped lower (forearm space).
     const sleeveCol = (o, t, a) => colorLerp(o, ROBE, ROBE_DARK, 0.25 + 0.2 * Math.sin(a * 3));
-    A.sleeveU = sweep({ points: [V(0, 0.05, 0), V(0, -0.3, 0)], seg: 5, radial: 14, radius: prof([[0, 0.078], [1, 0.084]]), shape: (t, a) => 1 + 0.05 * Math.sin(a * 5 + t * 3), capStart: false, capEnd: false, color: sleeveCol });
-    A.sleeveL = sweep({ points: [V(0, 0.03, 0), V(0, -0.14, 0.005), V(0, -0.235, 0.012)], seg: 7, radial: 18, radius: prof([[0, 0.083], [0.6, 0.09], [1, 0.108]]), shape: (t, a) => 1 + 0.07 * t * Math.sin(a * 6 + 1), capStart: false, capEnd: false, color: sleeveCol });
+    A.sleeveU = sweep({ points: [V(0, 0.05, 0), V(0, -D.upperArm - 0.01, 0)], seg: 5, radial: 14, radius: prof([[0, 0.078], [1, 0.084]]), shape: (t, a) => 1 + 0.05 * Math.sin(a * 5 + t * 3), capStart: false, capEnd: false, color: sleeveCol });
+    A.sleeveL = sweep({ points: [V(0, 0.03, 0), V(0, -D.forearm * 0.54, 0.005), V(0, -D.forearm + 0.025, 0.012)], seg: 7, radial: 18, radius: prof([[0, 0.083], [0.6, 0.09], [1, 0.108]]), shape: (t, a) => 1 + 0.07 * t * Math.sin(a * 6 + 1), capStart: false, capEnd: false, color: sleeveCol });
     A.fistR = fistGeo();
     A.fistL = mirrorX(A.fistR);
     const k = knifeGeo();
@@ -191,7 +198,8 @@ function assets() {
 
 const TIMINGS = {
   attack: { duration: 1.2, hit: 0.6 },
-  notice: { duration: 0.9 },
+  // Long enough for the crawler's fold (the 'turn' pose).
+  notice: { duration: 1.2 },
   hurt: { duration: 0.45 },
   death: { duration: 1.6 },
 };
@@ -199,12 +207,30 @@ const TIMINGS = {
 // lerp(idle -> wind -> strike -> idle) for attack channels.
 const seq = (i, w, s, a, b, c) => lerp(lerp(lerp(i, w, a), s, b), i, c);
 
+// Crawler bridge, in body space before the half turn (so "toward you" is -Z):
+// pelvis up, back arched over, head hanging upside down with the face tipped
+// up at you and the antlers reaching forward just off the floor like
+// mandibles, wrists planted ahead of the shoulders, feet behind.
+const BRIDGE = { hy: -0.21, hipsX: -1.0, spineX: -0.6, chestX: -0.55, neckX: -0.55, headX: 0.15 };
+const HAND_AT = [V(0.36, 0.1, -0.66), V(-0.36, 0.1, -0.66)];
+const FOOT_AT = [V(0.17, D.ankleH, 0.36), V(-0.17, D.ankleH, 0.36)];
+// Spine cracks during the fold, in seconds; matches CRACKS in sfx-depths.js.
+const CRACKS = [0, 0.22, 0.4, 0.55, 0.66, 0.75, 0.82];
+const CRAWL_STATES = new Set(['turn', 'crawlIdle', 'crawl', 'crawlAttack', 'crawlHurt', 'crawlDead', 'crawlKill']);
+// Candle grip in the corner of the skull's jaw (head space), off to one
+// side so it lights the face without hiding it.
+const MOUTH = V(0.075, 0.04, 0.24);
+
 export function buildAcolyte() {
   const A = assets();
   const M = instMats();
   const root = new THREE.Group();
   root.name = 'acolyte';
   const H = buildHumanoid(root, D);
+  // The crawler turns its back on you before it bends over backward, so the
+  // whole body hangs off a pivot that can spin half a turn.
+  const flip = pivot(root, 0, 0, 0, 'flip');
+  flip.add(H.body);
   const cloth = M.get('cloth'), bone = M.get('bone'), horn = M.get('horn'), skin = M.get('skin');
 
   // Per-instance skirt, deformed each frame by the legs.
@@ -234,14 +260,132 @@ export function buildAcolyte() {
   const flame = pivot(candle, 0, 0.116, 0, 'flame');
   mesh(A.flame, mat('flame'), flame, { cast: false, receive: false });
 
+  // Embers deep in the skull's sockets.
+  const eyes = glowEyes(H.head, [V(0.064, 0.118, 0.146), V(-0.064, 0.118, 0.146)], { r: 0.01 });
+
   const rig = new Rig();
   rigHumanoid(rig, H);
   rig.add('candle', candle, true);
+  rig.add('flip', flip);
   rig.finalize();
-  const anim = new Animator(rig, { hurt: 0.08, attack: 0.15, notice: 0.12, dead: 0.12, pray: 0.7, run: 0.3 });
+  const anim = new Animator(rig, {
+    hurt: 0.08, attack: 0.15, notice: 0.12, dead: 0.12, pray: 0.7, run: 0.3, kill: 0.1,
+    turn: 0.12, crawlIdle: 0.3, crawl: 0.25, crawlAttack: 0.12, crawlHurt: 0.06, crawlDead: 0.1, crawlKill: 0.08,
+  });
   let phase = 0;
+  let crawlPhase = 0;
   let t = 0;
+  let glow = 0;
+  let twitch = 0;
   const seed = Math.random() * 100;
+
+  // The candle moves between the left hand and the crawler's teeth.
+  const candleRig = rig.nodes.find((n) => n.node === candle);
+  function candleTo(mouth) {
+    const parent = mouth ? H.head : H.hand[0];
+    if (candle.parent === parent) return;
+    parent.add(candle);
+    candleRig.rp.copy(mouth ? MOUTH : GRIP);
+  }
+
+  // Crawler arms: poses set where the wrists go (body space) and how much the
+  // IK owns the arms (plant, 0..1); plantHands() solves after the rig applies.
+  let plant = 0;
+  const handT = [V(0, 0, 0), V(0, 0, 0)];
+  const _ta = new Float32Array(rig.size);
+  const _ha = [V(0, 0, 0), V(0, 0, 0)];
+  const _fc = [0, 0, 0];
+  // Cross-fade two whole poses (k = 0 is a, 1 is b), wrists and IK weight included.
+  function mix(r, a, b, k, s) {
+    r.tgt.fill(0);
+    plant = 0;
+    a(r, s);
+    _ta.set(r.tgt);
+    const pa = plant;
+    _ha[0].copy(handT[0]);
+    _ha[1].copy(handT[1]);
+    r.tgt.fill(0);
+    plant = 0;
+    b(r, s);
+    for (let i = 0; i < _ta.length; i++) r.tgt[i] = _ta[i] + (r.tgt[i] - _ta[i]) * k;
+    if (pa > 0) for (let i = 0; i < 2; i++) handT[i].lerpVectors(_ha[i], handT[i], k);
+    plant = lerp(pa, plant, k);
+  }
+
+  // The upside-down bridge every crawler pose builds on.
+  function bridge(r, breath = 1) {
+    const br = Math.sin(t * 2.3) * breath;
+    r.r('flip', 0, PI, 0);
+    r.p('hips', 0, BRIDGE.hy + 0.012 * br, 0);
+    r.r('hips', BRIDGE.hipsX, 0, 0);
+    r.r('spine', BRIDGE.spineX + 0.02 * br, 0, 0);
+    r.r('chest', BRIDGE.chestX + 0.03 * br, 0, 0);
+    // The hanging head turns slowly to follow you, with sudden jerks.
+    r.r('neck', BRIDGE.neckX, 0.3 * wobble(t * 0.35, seed + 11), 0.45 * twitch);
+    r.r('head', BRIDGE.headX, 0, 0.3 * wobble(t * 0.5, seed + 12) + 0.35 * twitch);
+    r.r('handL', 0.5, 0, 0);
+    r.r('handR', 0.5, 0, 0);
+    r.p('footL', FOOT_AT[0].x, FOOT_AT[0].y, FOOT_AT[0].z);
+    r.p('footR', FOOT_AT[1].x, FOOT_AT[1].y, FOOT_AT[1].z);
+    handT[0].copy(HAND_AT[0]);
+    handT[1].copy(HAND_AT[1]);
+    plant = 1;
+  }
+
+  // Flat on its back, limbs splayed.
+  function collapsed(r) {
+    r.r('flip', 0, PI, 0);
+    r.p('hips', 0, -0.72, 0.05);
+    r.r('hips', -1.35, 0, 0.1);
+    r.r('spine', -0.15, 0, 0);
+    r.r('chest', -0.1, 0.1, 0);
+    r.r('neck', -0.2, 0.3, 0);
+    r.r('head', -0.1, 0.5, 0.3);
+    r.p('footL', 0.25, D.ankleH, 0.75);
+    r.p('footR', -0.2, D.ankleH, 0.62);
+    handT[0].set(0.7, 0.06, -0.45);
+    handT[1].set(-0.65, 0.06, -0.6);
+    plant = 1;
+  }
+
+  // Kill-cam: stands up with its back to you and its head bent all the way
+  // back, so the upside-down skull hangs at your eye line; knife up behind it.
+  function risen(r) {
+    r.r('flip', 0, PI, 0);
+    stand(r, H, 1.2, 0.05, -0.05);
+    r.p('hips', 0, 0.02, 0.08);
+    r.r('hips', -0.1, 0, 0);
+    r.r('spine', -0.1, 0, 0);
+    r.r('chest', -0.15, 0, 0);
+    r.r('neck', -1.4, 0, 0);
+    r.r('head', -0.9, 0, 0);
+    r.r('armR', -2.6, 0.2, -0.3);
+    r.r('foreR', -1.2, 0, 0);
+    r.r('handR', 0.6, 0, 0);
+    r.r('armL', -0.4, 0, 0.5);
+    r.r('foreL', -0.6, 0, 0);
+    plant = 0;
+  }
+
+  const _wt = V(0, 0, 0), _pole = V(0, 0, 0);
+  const _fkQ = new THREE.Quaternion(), _ikQ = new THREE.Quaternion();
+  function plantHands(w) {
+    root.updateMatrixWorld(true);
+    for (let i = 0; i < 2; i++) {
+      const arm = H.arm[i], fore = H.fore[i];
+      _fkQ.copy(arm.quaternion);
+      const fkX = fore.rotation.x;
+      H.body.localToWorld(_wt.copy(handT[i]));
+      // Elbows out and up, like a spider's knees.
+      H.body.localToWorld(_pole.set(i ? -0.9 : 0.9, 1.3, -0.4));
+      ik3(arm, fore, D.upperArm, D.forearm, _wt, _pole, 1);
+      if (w < 1) {
+        _ikQ.copy(arm.quaternion);
+        arm.quaternion.slerpQuaternions(_fkQ, _ikQ, w);
+        fore.rotation.x = lerp(fkX, fore.rotation.x, w);
+      }
+    }
+  }
 
   const holdArms = (k = 1, sw = 0) => {
     rig.r('armL', -0.45 * k + sw, 0.12, 0.14);
@@ -334,6 +478,23 @@ export function buildAcolyte() {
       r.r('handR', -0.2, 0, 0);
       r.p('candle', 0, 0.06 * fall, 0);
     },
+    // Kill-cam: looms in over you with the skull tipped and the knife up, then stabs.
+    kill(r, s) {
+      const st = s.stateTime;
+      const lean = easeOut(st / 0.35);
+      const twitch = 0.07 * Math.sin(st * 47) * (1 - smooth((st - 0.3) / 0.3));
+      const strike = easeIn((st - 0.72) / 0.14);
+      stand(r, H, 1.15, 0.14, -0.12);
+      r.p('hips', 0, -0.03 * lean, 0.05 * lean);
+      r.r('spine', 0.18 * lean + 0.12 * strike, 0, 0);
+      r.r('chest', 0.2 * lean + 0.1 * strike, 0, 0);
+      r.r('neck', 0.25 * lean + twitch, 0, 0.55 * lean);
+      r.r('head', 0.1, 0, 0.35 * lean + twitch);
+      r.r('armR', lerp(-2.75, -0.35, strike), lerp(0.25, -0.35, strike), lerp(-0.35, 0.3, strike));
+      r.r('foreR', lerp(-1.55, -0.15, strike), 0, 0);
+      r.r('handR', lerp(0.7, -0.5, strike), 0, 0);
+      holdArms(1, 0.2);
+    },
     pray(r) {
       const rock = Math.sin(t * 1.3);
       r.p('footL', 0.13, 0.055, -0.43);
@@ -355,6 +516,74 @@ export function buildAcolyte() {
     },
   };
   POSES.run = POSES.walk;
+
+  Object.assign(POSES, {
+    // The fold: turns its back on you, then bends over backward a jolt per crack.
+    turn(r, s) {
+      const st = s.stateTime;
+      let bend = 0;
+      for (const c of CRACKS) bend += easeOut((st - c) / 0.07);
+      bend /= CRACKS.length;
+      mix(r, POSES.idle, POSES.crawlIdle, bend, s);
+      r.r('flip', 0, PI * smooth(st / 0.22), 0);
+      plant = smooth((st - 0.55) / 0.35);
+    },
+    crawlIdle(r) {
+      bridge(r);
+    },
+    crawl(r, s) {
+      const amt = smooth(s.speed / 0.3);
+      const fast = clamp((s.speed - 1) / 2, 0, 1);
+      const stride = lerp(0.45, 0.85, fast), duty = lerp(0.62, 0.45, fast);
+      bridge(r, 0);
+      // Lateral sequence, like an insect: left hand, right foot, right hand, left foot.
+      for (let i = 0; i < 2; i++) {
+        footCycle(crawlPhase + (i ? 0.5 : 0), duty, stride, 0.12, _fc);
+        handT[i].set(HAND_AT[i].x, HAND_AT[i].y + _fc[1] * amt, HAND_AT[i].z - _fc[0] * amt);
+        footCycle(crawlPhase + (i ? 0.25 : 0.75), duty, stride, 0.1, _fc);
+        r.p(i ? 'footR' : 'footL', FOOT_AT[i].x, FOOT_AT[i].y + _fc[1] * amt, FOOT_AT[i].z - _fc[0] * amt);
+      }
+      const sw = Math.sin(TAU * crawlPhase);
+      r.pa('hips', 0.02 * sw * amt, 0.025 * Math.cos(TAU * 2 * crawlPhase) * amt, 0);
+      r.ra('hips', 0, 0, 0.06 * sw * amt);
+      r.ra('chest', 0, 0.08 * Math.sin(TAU * crawlPhase + 1) * amt, 0);
+    },
+    // Surges at you; the knife hand leaves the floor and slashes up.
+    crawlAttack(r, s) {
+      const tt = s.stateTime;
+      bridge(r, 0);
+      const wind = smooth(tt / 0.45), strike = easeIn((tt - 0.45) / 0.15), back = smooth((tt - 0.8) / 0.4);
+      const surge = (wind * 0.3 + strike * 0.7) * (1 - back);
+      r.pa('hips', 0, 0.06 * surge, -0.2 * surge);
+      r.ra('chest', -0.15 * surge, 0, 0);
+      r.ra('neck', 0.2 * strike * (1 - back), 0, 0.4 * Math.sin(tt * 40) * wind * (1 - strike));
+      handT[1].copy(HAND_AT[1]).lerp(_wt.set(-0.3, 0.75, -0.4), wind * (1 - strike));
+      handT[1].lerp(_pole.set(-0.15, 0.95, -1.05), strike * (1 - back));
+    },
+    crawlHurt(r, s) {
+      bridge(r);
+      const k = Math.sin(PI * clamp(s.stateTime / 0.45, 0, 1));
+      r.pa('hips', 0, 0.08 * k, 0.1 * k);
+      r.ra('chest', 0.25 * k, 0.2 * k, 0);
+      r.ra('neck', 0.4 * k, 0, 0.5 * k);
+    },
+    crawlDead(r, s) {
+      const st = s.stateTime;
+      const drop = easeIn(st / 0.45);
+      const bounce = Math.sin(PI * clamp((st - 0.45) / 0.25, 0, 1)) * 0.04;
+      mix(r, POSES.crawlIdle, collapsed, drop, s);
+      r.pa('hips', 0, bounce, 0);
+    },
+    crawlKill(r, s) {
+      const st = s.stateTime;
+      mix(r, POSES.crawlIdle, risen, easeOut(st / 0.45), s);
+      plant *= 1 - smooth(st / 0.3);
+      const strike = easeIn((st - 0.72) / 0.14);
+      r.ra('armR', -0.9 * strike, 0, 0);
+      r.ra('foreR', 1.0 * strike, 0, 0);
+      r.ra('neck', 0, 0, 0.3 * twitch);
+    },
+  });
 
   // Skirt: follow the legs below the waist, then keep it above the floor.
   const _k = new THREE.Vector3(), _a = new THREE.Vector3(), _q = new THREE.Quaternion();
@@ -407,18 +636,35 @@ export function buildAcolyte() {
   function animate(dt, time, sIn) {
     const s = normState(sIn);
     t = time;
+    const crawling = CRAWL_STATES.has(s.state);
     if (s.state === 'walk' || s.state === 'run') {
       const stride = s.state === 'run' ? clamp(1.1 + s.speed * 0.32, 1.6, 3.4) : clamp(0.8 + s.speed * 0.45, 0.9, 2.2);
       phase += (dt * s.speed) / stride;
     }
+    if (s.state === 'crawl') crawlPhase += (dt * s.speed) / lerp(0.45, 0.85, clamp((s.speed - 1) / 2, 0, 1));
+    // Head jerks: a new random offset every ~0.3 s, only some of the time.
+    const h = wobble(Math.floor(t * 3.3) * 0.37, seed + 30);
+    twitch += ((Math.abs(h) > 0.35 ? h : 0) - twitch) * damp(28, dt);
+    candleTo(crawling && (s.state !== 'turn' || s.stateTime > 0.5));
+    plant = 0;
     anim.update(dt, s, (r, st) => (POSES[st.state] || POSES.idle)(r, st));
     solveLegs(H);
+    if (plant > 0.001) plantHands(Math.min(1, plant));
     deformSkirt();
+    // Eyes: dark in prayer, faint embers otherwise, blazing once it hunts.
+    let g = s.state === 'pray' ? 0 : crawling || s.state === 'notice' ? 1 : 0.15;
+    if (s.state === 'turn') g = smooth((s.stateTime - 0.3) / 0.5) * 1.2;
+    if (s.state === 'crawlKill' || s.state === 'kill') g = 1.5;
+    const dead = s.state === 'dead' || s.state === 'crawlDead';
+    if (dead) g = 0;
+    glow += (g - glow) * damp(dead ? 1.5 : 8, dt);
+    eyes.set(glow * (0.85 + 0.15 * wobble(t * 12, seed + 40)));
     // Candle stays upright and sways with motion; flame flickers.
-    const sway = 0.08 * wobble(t * 1.3, seed) + (s.state === 'run' ? -0.25 : s.state === 'walk' ? -0.08 : 0);
+    const moving = s.state === 'run' || s.state === 'crawl';
+    const sway = 0.08 * wobble(t * 1.3, seed) + (moving ? -0.25 : s.state === 'walk' ? -0.08 : 0);
     keepUpright(candle, root, sway, 0.06 * wobble(t * 1.1, seed + 9));
     const f1 = wobble(t * 9, seed + 1), f2 = wobble(t * 13, seed + 5);
-    flame.scale.set(1 + 0.12 * f1, 1 + 0.25 * f2 + (s.state === 'run' ? 0.3 : 0), 1 + 0.12 * f1);
+    flame.scale.set(1 + 0.12 * f1, 1 + 0.25 * f2 + (moving ? 0.3 : 0), 1 + 0.12 * f1);
     flame.rotation.set(0.12 * f2 - sway * 0.8, 0, 0.12 * f1);
     M.step(dt);
   }
@@ -436,12 +682,14 @@ export function buildAcolyte() {
   return {
     root, height: 1.8, radius: 0.35,
     hitSpheres,
+    // Kill-cam aim point, head space: the middle of the skull.
+    focus: V(0, 0.12, 0.12),
     lights: [light(flame, 0, 0.02, 0, 0xe08a2c, 1.4, 5, 0.5)],
     timings: TIMINGS,
-    states: ['idle', 'walk', 'run', 'notice', 'attack', 'hurt', 'dead', 'pray'],
+    states: ['idle', 'walk', 'run', 'notice', 'attack', 'hurt', 'dead', 'pray', 'kill', ...CRAWL_STATES],
     nodes: { head: H.head, knife, candle, flame },
     animate,
     flash: (v) => M.flash(v),
-    dispose() { skirtGeo.dispose(); M.dispose(); },
+    dispose() { skirtGeo.dispose(); M.dispose(); eyes.dispose(); },
   };
 }

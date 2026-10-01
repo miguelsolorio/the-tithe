@@ -8,10 +8,11 @@ import { DEPTHS_SFX, heart } from './audio/sfx-depths.js';
 import { WEAPONS_SFX, FOOTSTEPS } from './audio/sfx-weapons.js';
 import { WORLD_SFX } from './audio/sfx-world.js';
 import { AMBIENT_SFX } from './audio/sfx-ambient.js';
+import { LOWER_SFX } from './audio/sfx-lower.js';
 import { MUSIC, createBed, strings } from './audio/music.js';
 import { LOOPS } from './audio/loops.js';
 
-const SFX = { ...DEPTHS_SFX, ...WEAPONS_SFX, ...WORLD_SFX, ...AMBIENT_SFX };
+const SFX = { ...DEPTHS_SFX, ...WEAPONS_SFX, ...WORLD_SFX, ...AMBIENT_SFX, ...LOWER_SFX };
 
 // Reverb return level per zone (dry field -> big chapel -> long wet cistern
 // -> shorter wet caves), crossfaded alongside the bed on setZone().
@@ -23,6 +24,16 @@ const ZONE_REVERB = {
 // Positional sounds the player causes; these stay at full level on the sfxBus
 // rather than following setWorldLevel.
 const PLAYER_SFX = new Set(['ricochet', 'knifeHit', 'knifeWall', 'bulletHit', 'doorOpen', 'doorLocked']);
+
+// A creature hunting you: screams, attacks, footsteps. These skip the world
+// bus too, so the house hush (levels/proximityAudio.js) keeps the creaks and
+// chants quiet without muffling an encounter. Still positional, with falloff.
+const CREATURE_SFX = new Set([
+  'acolyteScream', 'acolyteWhisper', 'acolyteStep', 'crawlStep', 'boneCrack',
+  'snarl', 'houndBite', 'houndNotice', 'pawStep',
+  'drownedWake', 'drownedCough', 'wadeStep', 'gurgle', 'lamprey', 'lampreyDrop', 'ceilingKnock',
+  'skinlessScream', 'mimicCall', 'mimicBreak', 'fleshStep', 'mawInhale', 'mawExhale', 'mawGasp', 'mawBite',
+]);
 
 const DUMMY_LOOP = { setPos() {}, setGain() {}, stop() {} };
 
@@ -40,6 +51,8 @@ export class AudioEngine {
     this._worldLevel = 1;
     this._dread = null;
     this._dreadStopTimer = null;
+    this._paused = false;
+    this._focused = true;
   }
 
   // listener: THREE.AudioListener on the camera. Safe to call again (resumes).
@@ -52,6 +65,7 @@ export class AudioEngine {
     const ctx = listener.context;
     this.ctx = ctx;
     buildBuses(this, ctx);
+    this.master.gain.value = this._level();
     this.worldBus.gain.value = this.worldSend.gain.value = this._worldLevel;
     this.master.connect(listener.getInput());
     this.H = createHelpers(this);
@@ -61,8 +75,8 @@ export class AudioEngine {
 
   setVolume(v01) {
     this._volume = v01;
-    if (!this.ready || this._paused) return;
-    this.master.gain.setTargetAtTime(v01, this.ctx.currentTime, 0.05);
+    if (!this.ready) return;
+    this.master.gain.setTargetAtTime(this._level(), this.ctx.currentTime, 0.05);
   }
 
   // Silences everything while the game is paused. Beds and loops keep
@@ -71,7 +85,19 @@ export class AudioEngine {
   setPaused(paused) {
     this._paused = paused;
     if (!this.ready) return;
-    this.master.gain.setTargetAtTime(paused ? 0 : this._volume, this.ctx.currentTime, 0.1);
+    this.master.gain.setTargetAtTime(this._level(), this.ctx.currentTime, 0.1);
+  }
+
+  // Silent while the game's tab is hidden or its window isn't focused, the
+  // same master fade as pausing.
+  setFocused(focused) {
+    this._focused = focused;
+    if (!this.ready) return;
+    this.master.gain.setTargetAtTime(this._level(), this.ctx.currentTime, 0.1);
+  }
+
+  _level() {
+    return this._paused || !this._focused ? 0 : this._volume;
   }
 
   _warnOnce(key) {
@@ -83,12 +109,13 @@ export class AudioEngine {
   // pos: {x,y,z} for an HRTF one-shot, omit for non-positional (UI/global).
   // music: route to the music bus (bed-level ambience that a hushed world
   // bus shouldn't bury, e.g. wolves heard through the house walls).
-  play(name, { pos, gain = 1, music = false } = {}) {
+  // arg: one extra value for recipes that take it (a breath's length).
+  play(name, { pos, gain = 1, music = false, arg } = {}) {
     if (!this.ready) return;
     const fn = SFX[name];
     if (!fn) { this._warnOnce(name); return; }
-    const dest = music ? this.musicBus : pos && !PLAYER_SFX.has(name) ? this.worldBus : this.sfxBus;
-    try { fn(this.H, dest, pos || null, gain); }
+    const dest = music ? this.musicBus : pos && !PLAYER_SFX.has(name) && !CREATURE_SFX.has(name) ? this.worldBus : this.sfxBus;
+    try { if (arg === undefined) fn(this.H, dest, pos || null, gain); else fn(this.H, dest, pos || null, gain, arg); }
     catch (e) { console.error(`[audio] play('${name}') failed:`, e); }
   }
 
@@ -192,17 +219,21 @@ export class AudioEngine {
     this.underwaterFilter.frequency.setTargetAtTime(bool ? 700 : 22000, this.ctx.currentTime, 0.15);
   }
 
-  // Per-frame: low-health heartbeat (never stacking, timer-gated) plus the
-  // voice cap lives in H.out() so any one-shot storm is capped there.
-  update(dt, { health01 = 1 } = {}) {
+  // Per-frame: heartbeat at low health or while something hunting you is
+  // close (fear 0..1), never stacking, timer-gated. The voice cap lives in
+  // H.out() so any one-shot storm is capped there.
+  update(dt, { health01 = 1, fear = 0 } = {}) {
     if (!this.ready) return;
     try {
-      if (health01 < 0.3) {
+      const hurt = health01 < 0.3;
+      if (hurt || fear > 0.15) {
         this._heartT -= dt;
         if (this._heartT <= 0) {
           const hp = Math.max(0.05, Math.min(0.3, health01));
-          this._heartT = 0.45 + ((hp - 0.05) / 0.25) * 0.55;
-          heart(this.H, this.sfxBus, null, 0.8);
+          const hurtGap = hurt ? 0.45 + ((hp - 0.05) / 0.25) * 0.55 : Infinity;
+          const fearGap = fear > 0.15 ? 1.0 - 0.55 * fear : Infinity;
+          this._heartT = Math.min(hurtGap, fearGap);
+          heart(this.H, this.sfxBus, null, hurt ? 0.8 : 0.35 + 0.45 * fear);
         }
       } else {
         this._heartT = 0;

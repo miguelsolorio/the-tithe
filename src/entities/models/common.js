@@ -132,6 +132,41 @@ export function light(node, x, y, z, color, intensity, distance, flicker = 0) {
   return { node, offset: new THREE.Vector3(x, y, z), color, intensity, distance, flicker };
 }
 
+// Glowing pinprick eyes: an additive core bright enough for the bloom pass
+// and a faint halo, both ignoring fog so they read down a dark hallway.
+// xray draws them through whatever hangs in front (hair); the caller then
+// owns hiding them when they're blocked (Enemy.eyeShine checks sight).
+// Returns { set(k), dispose() } with k from 0 (dark) to about 1.5 (blazing).
+const eyeGeo = new THREE.SphereGeometry(1, 10, 8);
+export function glowEyes(parent, points, { r = 0.012, color = 0xff3018, xray = false } = {}) {
+  const base = new THREE.Color(color);
+  const opts = { transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: !xray, fog: false, toneMapped: false };
+  const core = new THREE.MeshBasicMaterial({ ...opts, color: base.clone().multiplyScalar(3) });
+  const halo = new THREE.MeshBasicMaterial({ ...opts, color: base });
+  core.userData.noFlash = halo.userData.noFlash = true;
+  const meshes = [];
+  for (const p of points) {
+    for (const [m, s] of [[core, r], [halo, r * 2.8]]) {
+      const e = new THREE.Mesh(eyeGeo, m);
+      e.scale.setScalar(s);
+      e.position.copy(p);
+      e.castShadow = e.receiveShadow = false;
+      e.visible = false;
+      if (xray) e.renderOrder = 10;
+      parent.add(e);
+      meshes.push(e);
+    }
+  }
+  return {
+    set(k) {
+      core.opacity = clamp(k, 0, 1);
+      halo.opacity = 0.2 * k;
+      for (const e of meshes) e.visible = k > 0.01;
+    },
+    dispose() { core.dispose(); halo.dispose(); },
+  };
+}
+
 // Cache of per-type shared geometry sets, built on first use.
 const geoCache = new Map();
 export function cached(key, build) {

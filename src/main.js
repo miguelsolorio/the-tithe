@@ -35,6 +35,8 @@ class SilentAudio {
   setDread() {}
   setBossHealth() {}
   setUnderwater() {}
+  setPaused() {}
+  setFocused() {}
   play() {}
   loop() {
     return { setPos() {}, setGain() {}, stop() {} };
@@ -112,6 +114,7 @@ class Game {
     this.ready = Promise.all([
       audioReady.then((Engine) => {
         this.audio = new Engine();
+        this.audio.setFocused(this.focused !== false);
       }),
       propsReady,
       creaturesReady,
@@ -250,6 +253,15 @@ class Game {
     this.renderer.domElement.addEventListener('click', () => {
       if (this.state === 'playing' && !this.input.locked) this.input.requestLock();
     });
+    // No sound while you're in another tab, window or app.
+    const focus = () => {
+      this.focused = !document.hidden && document.hasFocus();
+      this.audio.setFocused(this.focused);
+    };
+    document.addEventListener('visibilitychange', focus);
+    window.addEventListener('blur', focus);
+    window.addEventListener('focus', focus);
+    focus();
     if (this.touch) {
       // Switching apps or locking the phone pauses (there's no pointer lock to lose).
       document.addEventListener('visibilitychange', () => {
@@ -361,6 +373,8 @@ class Game {
     this.audio.setZone(null);
     this.audio.setDread(0);
     this.audio.setPaused(false);
+    this.enemies.fear = 0;
+    this.fx.presence = 0;
     this.hud.hide();
     this.hud.screen('title');
     if (LevelManager.loadSaved()) $('#btn-continue').classList.remove('hidden');
@@ -370,22 +384,46 @@ class Game {
     this.showTitleScene();
   }
 
-  onPlayerDeath(cause) {
+  onPlayerDeath(cause, killer = null) {
     if (this.state !== 'playing') return;
     this.state = 'dead';
     this.stats.deaths++;
     this.analytics.death(cause);
     this.player.frozen = true;
-    this.audio.play('death');
     this.audio.setDread(0);
-    this.fx.fadeTo(1, 0.6);
+    // Kill-cam: your view is dragged onto its face as it shrieks, then a hard cut.
+    const cam = !!killer?.cfg.killCam && !killer.dead && (killer.canKillCam?.() ?? true);
+    const cut = cam ? killer.cfg.killCut : 0;
+    if (cam) {
+      killer.setState('kill');
+      if (killer.cfg.killSound) this.audio.play(killer.cfg.killSound, { gain: killer.cfg.killGain });
+      this.audio.play('screech', { gain: 0.8 });
+      this.fx.scare(1.2);
+      this.player.shake = 1;
+      killer.onKillCam?.();
+      // The flashlight sputters out, so all that's left is its own light.
+      const p = this.player;
+      if (!killer.cfg.killLight) {
+        p.flashOn = false;
+        setTimeout(() => this.state === 'dead' && (p.flashOn = true), 90);
+        setTimeout(() => this.state === 'dead' && (p.flashOn = false), 200);
+      }
+      setTimeout(() => {
+        if (this.state !== 'dead') return;
+        this.audio.play('death');
+        this.fx.fadeTo(1, 60);
+      }, cut);
+    } else {
+      this.audio.play('death');
+      this.fx.fadeTo(1, 0.6);
+    }
     const text = DEATH_TEXT[cause === 'drowned' ? 'drowned_water' : cause] || DEATH_TEXT.default;
     setTimeout(() => {
       $('#death-text').textContent = text;
       this.hud.screen('dead');
       this.input.releaseLock();
       this.touchControls?.show(false);
-    }, 1600);
+    }, cam ? cut + 1200 : 1600);
   }
 
   // Called by the field (dawn) when you walk out with your sister.
@@ -442,7 +480,7 @@ class Game {
       this.particles.update(dt);
       this.lights.pulse = pulseAt(this.time);
       this.lights.update(this.camera.position, this.time, dt);
-      this.audio.update(dt, { health01: this.player.health / CONFIG.player.maxHealth });
+      this.audio.update(dt, { health01: this.player.health / CONFIG.player.maxHealth, fear: this.player.dead ? 0 : this.enemies.fear });
       this.hud.update(dt);
       this.touchControls?.update();
     } else if (this.state === 'title' && this.levels.current) {

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
-  mesh, hit, instMats, mat, cached, normState, colorLerp, prep,
-  sweep, blob, merge, xf, spike, flip,
+  mesh, hit, light, instMats, mat, cached, normState, colorLerp, prep,
+  sweep, blob, merge, xf, spike, flip, glowEyes,
   clamp, lerp, smooth, easeOut, easeIn, damp, wobble, fbm3, PI, TAU,
 } from './common.js';
 
@@ -10,7 +10,10 @@ import {
 // +Z points out into the corridor. States: 'dormant' (closed, breathing),
 // 'lunge' (stalk shoots ~1.7 m out, jaws snap shut at timings.lunge.hit),
 // 'retract', 'hurt', 'dead' (limp, sagging open). 'idle'/'notice'/'attack'
-// map to dormant/dormant+twitch/lunge.
+// map to dormant/dormant+twitch/lunge. 'kill' reaches for s.reach (root
+// space, your eyes) and closes the jaws around it.
+// It breathes: s.breath (0 out .. 1 in) swells the flesh around the hole and
+// parts the jaws on strings of spit; s.glow lights the throat red.
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const RX = 0.46, RZ = 0.42, HINGE = -0.28, REACH = 1.7;
@@ -77,9 +80,19 @@ function collarGeo() {
   return merge([ring, ...veins, hole]);
 }
 
+// A swollen ring of wall flesh around the collar that rises with each breath.
+function bulgeGeo() {
+  const pts = [...Array(33)].map((_, i) => { const a = (i / 32) * TAU; return V(Math.cos(a) * 0.92, Math.sin(a) * 0.85, -0.16); });
+  return sweep({ points: pts, seg: 48, radial: 12, radius: [0.34, 0.24], hint: V(0, 0, 1), capStart: false, capEnd: false, bumps: { amp: 0.35, freq: 9, seed: 33 }, color: fleshCol(0x3a080c, 0x140204, 0.9), tile: 0.2 });
+}
+
+// Strings of spit between the jaws (front arc, jaw space angles).
+const SPIT = [1.12, 1.42, 1.72, 2.02];
+
 function assets() {
   return cached('wallMaw', () => ({
-    upper: jawGeo(1), lower: jawGeo(-1), teethU: teethGeo(1), teethL: teethGeo(-1), collar: collarGeo(),
+    upper: jawGeo(1), lower: jawGeo(-1), teethU: teethGeo(1), teethL: teethGeo(-1), collar: collarGeo(), bulge: bulgeGeo(),
+    strand: new THREE.CylinderGeometry(1, 1, 1, 5, 1, true),
     throat: blob({ r: 1, sx: 0.3, sy: 0.18, sz: 0.1, ws: 12, hs: 6, color: (o) => o.set(0x000000), fn: (p) => { p.z -= 0.2; } }),
   }));
 }
@@ -99,7 +112,8 @@ export function buildWallMaw() {
   const flesh = M.get('flesh'), teeth = M.get('teeth');
   const root = new THREE.Group();
   root.name = 'wallMaw';
-  mesh(A.collar, flesh, root);
+  const collar = mesh(A.collar, flesh, root);
+  const bulge = mesh(A.bulge, flesh, root);
   const head = new THREE.Group();
   head.name = 'mouth';
   root.add(head);
@@ -113,6 +127,10 @@ export function buildWallMaw() {
   mesh(A.throat, mat('dark'), head, { cast: false });
   const stalkMid = new THREE.Object3D();
   root.add(stalkMid);
+  // The light in its throat: an additive glow plus a real red light (lights[0]).
+  const glow = glowEyes(head, [V(0, -0.02, -0.075)], { r: 0.045, color: 0xff2a10 });
+  const spitMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c4, roughness: 0.12, transparent: true, opacity: 0, depthWrite: false });
+  const strands = SPIT.map(() => { const m = new THREE.Mesh(A.strand, spitMat); m.castShadow = false; head.add(m); return m; });
 
   // Per-instance stalk: swept each frame from inside the wall to the head.
   const count = RINGS * (RAD + 1);
@@ -138,15 +156,28 @@ export function buildWallMaw() {
   geo.boundingSphere = new THREE.Sphere(V(0, 0, 0.6), 2.0);
   mesh(geo, flesh, root);
 
-  const P = { ext: 0, open: 0, droop: 0, shake: 0, pulse: 1 };
+  const P = { ext: 0, open: 0, droop: 0, shake: 0, pulse: 1, kx: 0, ky: 0, kill: 0 };
   const T = { ...P };
   let t = 0, first = true;
   const seed = Math.random() * 50;
 
   function targets(s) {
     const st = s.stateTime;
-    Object.assign(T, { ext: 0, open: 0.02 + 0.02 * Math.sin(t * 1.3), droop: 0, shake: 0, pulse: 1 + 0.035 * Math.sin(t * 1.1) });
+    const br = s.breath ?? 0.5 + 0.5 * Math.sin(t * 1.1);
+    Object.assign(T, { ext: 0, open: 0.05 + 0.12 * br, droop: 0, shake: 0, pulse: 0.98 + 0.06 * br, kx: 0, ky: 0, kill: 0 });
     switch (s.state) {
+      case 'kill': {
+        // Out of the wall to just short of your face, gaping, then shut on you.
+        const R = s.reach;
+        T.kill = 1;
+        T.ext = R ? clamp(R.z - 0.14 - 0.72, 0, 3.0) : REACH;
+        T.kx = R ? R.x : 0;
+        T.ky = R ? R.y - 0.05 : 0;
+        T.open = st < 0.5 ? 1 : 0.04;
+        T.shake = st > 0.5 ? 0.5 * (1 - smooth((st - 0.5) / 0.6)) : 0.12;
+        T.pulse = 1.05;
+        break;
+      }
       case 'notice':
         T.open = 0.15 + 0.1 * Math.sin(st * 20); T.shake = 0.3;
         break;
@@ -175,11 +206,34 @@ export function buildWallMaw() {
   const b0 = new THREE.Vector3(), b1 = new THREE.Vector3(), b2 = new THREE.Vector3(), b3 = new THREE.Vector3();
   const q = new THREE.Vector3(), f = new THREE.Vector3(), side = new THREE.Vector3(), up = new THREE.Vector3(), tmp = new THREE.Vector3(), fwd = new THREE.Vector3();
 
+  const qs = new THREE.Vector3(), qe = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
+  // Jaw space -> head space for a point on a jaw rim (the jaws only pitch).
+  function rim(jawObj, a, y, out) {
+    const z = Math.sin(a) * RZ * 0.82 - HINGE, x = Math.cos(a) * RX * 0.66, th = jawObj.rotation.x;
+    return out.set(x, y * Math.cos(th) - z * Math.sin(th), HINGE + y * Math.sin(th) + z * Math.cos(th));
+  }
+  function updateSpit() {
+    const o = P.open;
+    spitMat.opacity = 0.75 * smooth((o - 0.04) / 0.05) * (1 - smooth((o - 0.35) / 0.1));
+    strands.forEach((m, i) => {
+      m.visible = spitMat.opacity > 0.01;
+      if (!m.visible) return;
+      rim(jawU, SPIT[i], -0.01, qs);
+      rim(jawL, SPIT[i] + 0.06, 0.01, qe);
+      m.position.addVectors(qs, qe).multiplyScalar(0.5);
+      m.position.y -= 0.012;
+      const len = qs.distanceTo(qe);
+      m.quaternion.setFromUnitVectors(Y, qe.sub(qs).normalize());
+      const w = 0.0085 - (i % 2) * 0.0025;
+      m.scale.set(w, len, w);
+    });
+  }
+
   function update() {
     const e = P.ext;
-    const sag = 0.12 * (e / REACH) ** 2 + 0.35 * P.droop * (0.3 + e / REACH);
+    const sag = (0.12 * (e / REACH) ** 2 + 0.35 * P.droop * (0.3 + e / REACH)) * (1 - P.kill);
     const sh = P.shake * 0.05;
-    head.position.set(sh * wobble(t * 30, seed), -sag + sh * wobble(t * 27, seed + 1), 0.14 + e);
+    head.position.set(sh * wobble(t * 30, seed) + P.kx, -sag + sh * wobble(t * 27, seed + 1) + P.ky, 0.14 + e);
     head.rotation.set(0.25 * P.droop + 0.15 * (e / REACH) ** 2 * 0, 0.05 * wobble(t * 0.4, seed + 2) * (1 - P.droop), 0.1 * P.droop);
     head.scale.setScalar(P.pulse);
     const o = P.open;
@@ -217,13 +271,21 @@ export function buildWallMaw() {
 
   function animate(dt, time, sIn) {
     const s = normState(sIn);
+    s.breath = sIn?.breath;
+    s.reach = sIn?.reach;
     t = time;
     targets(s);
-    const fast = s.state === 'lunge' || s.state === 'attack' || s.state === 'hurt';
+    // The wall breathes with it.
+    const br = s.state === 'dead' ? 0 : P.pulse - 0.98;
+    bulge.scale.set(1 + 0.5 * br, 1 + 0.5 * br, 0.5 + 10 * br);
+    collar.scale.set(1 + 0.3 * br, 1 + 0.3 * br, 1 + 3 * br);
+    glow.set(s.state === 'dead' ? 0 : sIn?.glow ?? 0.3);
+    const fast = s.state === 'lunge' || s.state === 'attack' || s.state === 'hurt' || s.state === 'kill';
     const k = first ? 1 : damp(fast ? 30 : s.state === 'retract' ? 4.5 : 6, dt);
     first = false;
     for (const key in P) P[key] += (T[key] - P[key]) * (key === 'open' && fast ? damp(40, dt) : k);
     update();
+    updateSpit();
     M.step(dt);
   }
 
@@ -234,12 +296,13 @@ export function buildWallMaw() {
       hit(head, 0, 0, -0.45, 0.33, 'body'),
       hit(stalkMid, 0, 0, 0, 0.36, 'body'),
     ],
-    lights: [],
+    // The throat light; WallMaw drives its intensity with the breath and the strike.
+    lights: [light(head, 0, 0, 0.05, 0xff3018, 0.6, 3.2, 0)],
     timings: TIMINGS,
-    states: ['dormant', 'notice', 'lunge', 'retract', 'hurt', 'dead'],
+    states: ['dormant', 'notice', 'lunge', 'retract', 'hurt', 'dead', 'kill'],
     nodes: { mouth: head, jaws: [jawU, jawL] },
     animate,
     flash: (v) => M.flash(v),
-    dispose() { geo.dispose(); M.dispose(); },
+    dispose() { geo.dispose(); M.dispose(); glow.dispose(); spitMat.dispose(); },
   };
 }

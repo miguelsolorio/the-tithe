@@ -3,6 +3,7 @@
 // every timer and stops every node, per the public loop() contract.
 import { chant, drip } from './sfx-depths.js';
 import { phoneBuzz } from './sfx-weapons.js';
+import { lullaby } from './sfx-lower.js';
 
 // opts overrides the panner's distance falloff, e.g. a linear model with a
 // short max so a loop goes fully silent a few metres away.
@@ -24,10 +25,10 @@ export function makeLoopHandle(engine, H, pos, gain, opts = {}) {
     bus.connect(panner);
     head = panner;
   }
-  head.connect(pos ? engine.worldBus : engine.sfxBus);
+  head.connect(pos && !opts.sfx ? engine.worldBus : engine.sfxBus);
   const send = H.G(0.3);
   head.connect(send);
-  send.connect(pos ? engine.worldSend : engine.reverb);
+  send.connect(pos && !opts.sfx ? engine.worldSend : engine.reverb);
   const nodes = [];
   const timers = [];
   let stopped = false;
@@ -190,7 +191,20 @@ function flyBuzz(engine, H, pos, gain) {
   return L;
 }
 
+// The Mother humming her lullaby, over and over, until she stops to strike.
+// Wide falloff so it fills the heart; on the sfx bus like any encounter sound.
+function motherHum(engine, H, pos, gain) {
+  const L = makeLoopHandle(engine, H, pos, gain, { sfx: true, ref: 8, rolloff: 0.6, max: 80 });
+  const go = () => {
+    const end = lullaby(H, L.bus, null, 1, H.now() + 0.05);
+    L.later((end - H.now() + H.rnd(0.9, 1.6)) * 1000, go);
+  };
+  go();
+  return L;
+}
+
 export const LOOPS = {
+  motherHum,
   flyBuzz,
   bulbBuzz, candle, chantLoop, waterFlow, dripping, fleshBreath, mawBreath, phoneRing, floodRush,
 };

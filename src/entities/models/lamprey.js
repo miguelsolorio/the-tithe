@@ -9,7 +9,12 @@ import {
 // spine (14 joint nodes), a round sucker mouth ringed with rows of teeth,
 // and three pairs of pale human arms that plant and pull.
 // Extra states: 'crawl' (walk/run map to it), 'lunge' (timings.lunge),
-// 'dormant' (flat on the floor, top < 0.35 m).
+// 'dormant' (flat on the floor, top < 0.35 m), and the ceiling set: 'hang'
+// (gripping the ceiling, the front hanging straight down), 'ceilCrawl'
+// (hand over hand along the ceiling), 'climb' (back up) and 'kill' (the
+// front hanging or rearing to your eye line, mouth on you).
+// Ceiling states take s.ceil (ceiling height above the root); the whole body
+// rolls over onto it. s.fromCeil makes a lunge start up there and drop.
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const N = 14, RINGS = 44, RAD = 18, LEN = 2.8, HEAD_Z = 1.2;
@@ -116,7 +121,8 @@ const TIMINGS = {
   death: { duration: 1.5 },
 };
 const armStride = (v) => clamp(0.35 + v * 0.2, 0.4, 1.0);
-const KEYS = ['rear', 'amp', 'flare', 'extend', 'flat', 'roll', 'pitch', 'crawl', 'reach', 'fold', 'splay'];
+const KEYS = ['rear', 'amp', 'flare', 'extend', 'flat', 'roll', 'pitch', 'crawl', 'reach', 'fold', 'splay', 'drape', 'hangLen', 'grab', 'shift'];
+const HANG_MAX = 1.7;
 
 export function buildLamprey() {
   const A = assets();
@@ -166,22 +172,52 @@ export function buildLamprey() {
     }
   });
 
-  const P = { rear: 0.08, amp: 0.25, flare: 0.15, extend: 0, flat: 0, roll: 0, pitch: 0, crawl: 0, reach: 0, fold: 0, splay: 0 };
+  const P = { rear: 0.08, amp: 0.25, flare: 0.15, extend: 0, flat: 0, roll: 0, pitch: 0, crawl: 0, reach: 0, fold: 0, splay: 0, drape: 0, hangLen: 1.4, grab: 0, shift: 0 };
   const T = { ...P };
   let wave = 0, armPhase = 0, t = 0, first = true;
+  // Rolled over onto the ceiling (0 floor .. 1 ceiling) and the ceiling's world
+  // height (so the body stays put when the floor under the root steps up).
+  let flip = 0, flipT = 0, ceilW = 0;
   const seed = Math.random() * 50;
 
   function targets(s) {
     const st = s.stateTime;
-    Object.assign(T, { rear: 0.08, amp: 0.25, flare: 0.15 + 0.08 * Math.sin(t * 2.1), extend: 0, flat: 0, roll: 0, pitch: 0.1 * wobble(t * 0.4, seed), crawl: 0, reach: 0, fold: 0, splay: 0 });
+    Object.assign(T, { rear: 0.08, amp: 0.25, flare: 0.15 + 0.08 * Math.sin(t * 2.1), extend: 0, flat: 0, roll: 0, pitch: 0.1 * wobble(t * 0.4, seed), crawl: 0, reach: 0, fold: 0, splay: 0, drape: 0, hangLen: P.hangLen, grab: 0, shift: 0 });
+    flipT = 0;
+    const hang = clamp((s.ceil ?? 0) - 1.9, 1.0, HANG_MAX);
     switch (s.state) {
       case 'walk': case 'run': case 'crawl':
         Object.assign(T, { rear: 0.12, amp: 0.85, crawl: smooth(s.speed / 0.3), pitch: 0.05 });
         break;
+      case 'hang':
+        // Gripping the ceiling, the front hanging straight down, swaying, mouth tipped toward you.
+        flipT = 1;
+        Object.assign(T, { flat: 1, drape: 1, hangLen: hang, amp: 0.12, rear: 0, pitch: 0.75 + 0.1 * wobble(t * 0.5, seed + 3), flare: 0.25 + 0.15 * Math.max(0, wobble(t * 0.7, seed + 4)) });
+        break;
+      case 'ceilCrawl':
+        flipT = 1;
+        Object.assign(T, { rear: 0.4, amp: 0.85, crawl: Math.max(0.6, smooth(s.speed / 0.3)), pitch: 0.45, flare: 0.4 });
+        break;
+      case 'climb':
+        flipT = 1;
+        Object.assign(T, { rear: 0.2, amp: 0.5, reach: 1 - smooth(st / 0.5), pitch: 0.3, flare: 0.3 });
+        break;
+      case 'kill': {
+        // Hung from the ceiling to your eye line if it can, else reared up off the floor.
+        const eye = s.eyeH ?? 1.6, c = s.ceil ?? 0;
+        const fromAbove = c - eye > 0.55 && c - eye < HANG_MAX + 0.2;
+        flipT = fromAbove ? 1 : 0;
+        const len = fromAbove ? clamp(c - eye, 0.6, HANG_MAX) : clamp(eye - 0.15, 0.8, HANG_MAX);
+        const k = smooth(st / 0.35);
+        // Shifted so the hooked head ends up over the root, an arm's length from you.
+        Object.assign(T, { flat: 1, drape: 1, hangLen: len, amp: 0.15, rear: 0, pitch: lerp(0.6, PI / 2, k), flare: 0.4 + 0.6 * k, grab: k, shift: len - HEAD_Z - 0.34 });
+        break;
+      }
       case 'notice':
         Object.assign(T, { rear: 0.45, flare: 0.65, amp: 0.35, pitch: -0.25 });
         break;
       case 'lunge': case 'attack': {
+        if (s.fromCeil) flipT = 1 - smooth(st / 0.3);
         const big = s.state === 'lunge';
         const d = TIMINGS[s.state].duration, h = TIMINGS[s.state].hit;
         const tt = progress(s, d) * d;
@@ -222,6 +258,18 @@ export function buildLamprey() {
       const ext = P.extend * (1 - smooth(u / 0.6));
       const amp = (0.03 + 0.24 * u * u) * P.amp;
       jp[i].set(amp * Math.sin(TAU * (s / 1.4 - wave)), r[1] * (1 - 0.35 * P.flat) + lift, HEAD_Z - s + ext);
+      // Drape: the front hangLen metres leave the surface and run straight away
+      // from it (up off the floor, or down from the ceiling once rolled over).
+      if (P.drape > 0.001) {
+        const Ld = P.hangLen, hinge = HEAD_Z - Ld;
+        // The hanging end hooks toward you and swings like a pendulum.
+        const k = s < Ld ? 1 - s / Ld : 0;
+        const vy = s < Ld ? r[1] + (Ld - s) : r[1] * 0.65;
+        const vz = s < Ld ? hinge + 0.34 * k * k + 0.05 * Math.sin(t * 0.9 + s) : HEAD_Z - s;
+        jp[i].x = jp[i].x * (1 - 0.6 * P.drape) + P.drape * 0.12 * k * Math.sin(t * 0.7 + seed);
+        jp[i].y = lerp(jp[i].y, vy, P.drape);
+        jp[i].z = lerp(jp[i].z, vz, P.drape);
+      }
     }
     for (let k = 0; k < RINGS; k++) {
       const f = (k / (RINGS - 1)) * (N - 1);
@@ -242,6 +290,8 @@ export function buildLamprey() {
     const f = F[k];
     const roll = P.roll + 0.15 * P.amp * Math.sin(TAU * ((k / RINGS) * 2 - wave)) * (k / RINGS);
     up.set(-Math.sin(roll), Math.cos(roll), 0);
+    // Where the body runs vertical (draped), the back faces the tail instead.
+    if (Math.abs(f.y) > 0.6) up.lerp(tmp.set(0, 0, -Math.sign(f.y)), clamp((Math.abs(f.y) - 0.6) / 0.3, 0, 1));
     side.crossVectors(up, f).normalize();
     up.crossVectors(f, side);
   }
@@ -282,6 +332,8 @@ export function buildLamprey() {
     m4.makeBasis(side, up, F[0]);
     head.quaternion.setFromRotationMatrix(m4);
     head.rotateX(P.pitch);
+    // Tipped far over (hanging, kill-cam), push the mouth out past the body's end.
+    mouth.position.z = 0.02 + 0.14 * smooth((P.pitch - 0.6) / 0.9);
     const fl = P.flare;
     mouth.scale.set(lerp(0.55, 1.3, fl), lerp(0.55, 1.3, fl), lerp(0.75, 1.1, fl));
   }
@@ -303,6 +355,7 @@ export function buildLamprey() {
       tgt.lerp(tmp.set(J.x + a.side * 0.2, 0.04, J.z - 0.22), P.fold);
       tgt.lerp(tmp.set(J.x + a.side * 0.3, 0.22, J.z + 0.5), P.reach);
       tgt.lerp(tmp.set(J.x + a.side * 0.5, 0.04, J.z + 0.05), P.splay);
+      tgt.lerp(tmp.set(J.x + a.side * 0.32, J.y - 0.05, J.z + 0.42), P.grab);
       body.localToWorld(tgt);
       pole.set(J.x + a.side * 0.5, J.y + 0.4, J.z - 0.3);
       body.localToWorld(pole);
@@ -317,12 +370,24 @@ export function buildLamprey() {
 
   function animate(dt, time, sIn) {
     const s = normState(sIn);
+    s.ceil = sIn?.ceil ?? 0;
+    s.eyeH = sIn?.eyeH;
+    s.fromCeil = !!sIn?.fromCeil;
     t = time;
     targets(s);
-    const fast = s.state === 'lunge' || s.state === 'attack' || s.state === 'hurt';
+    const fast = s.state === 'lunge' || s.state === 'attack' || s.state === 'hurt' || s.state === 'kill';
     const k = first ? 1 : damp(fast ? 18 : 5, dt);
-    first = false;
     for (const key of KEYS) P[key] += (T[key] - P[key]) * k;
+    // Roll over onto the ceiling (or drop off it); remember how high it is.
+    if ((s.ceil ?? 0) > 0) {
+      const w = root.position.y + s.ceil;
+      ceilW = first || ceilW === 0 || flip < 0.05 ? w : ceilW + (w - ceilW) * damp(4, dt);
+    }
+    flip = first ? flipT : flip + (flipT - flip) * damp(s.state === 'lunge' ? 14 : s.state === 'climb' ? 6 : 8, dt);
+    if (flip < 1e-3 && flipT === 0) flip = 0;
+    body.rotation.z = PI * flip;
+    body.position.set(0, Math.max(0, ceilW - root.position.y) * flip, P.shift);
+    first = false;
     const moving = s.state === 'walk' || s.state === 'run' || s.state === 'crawl';
     wave += dt * (moving ? s.speed / (1.4 * 0.7) : s.state === 'dormant' ? 0.05 : s.state === 'hurt' ? 2.5 : 0.25);
     if (moving) armPhase += (dt * s.speed) / armStride(s.speed);
@@ -346,8 +411,10 @@ export function buildLamprey() {
     ],
     lights: [],
     timings: TIMINGS,
-    states: ['idle', 'crawl', 'notice', 'attack', 'lunge', 'hurt', 'dead', 'dormant'],
+    states: ['idle', 'crawl', 'notice', 'attack', 'lunge', 'hurt', 'dead', 'dormant', 'hang', 'ceilCrawl', 'climb', 'kill'],
     nodes: { head, mouth, joints },
+    // Kill-cam aim: the middle of the mouth.
+    focus: V(0, 0, 0.12),
     animate,
     flash: (v) => M.flash(v),
     dispose() { geo.dispose(); M.dispose(); },

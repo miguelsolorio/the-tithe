@@ -5,6 +5,7 @@ import { buildCreature, CREATURE_TYPES } from '../src/entities/models/index.js';
 // Creature test bench: one creature per slot, flashlight on the camera,
 // per-state buttons, hit sphere overlay. window.T exposes a small API for
 // scripted screenshots (T.pose('hound', 'run', 0.4), T.cam(30, 10, 4)).
+// T.extra({ ceil: 3.2 }) passes extra inputs to the model for poses that need them.
 
 window.__errors = [];
 addEventListener('error', (e) => window.__errors.push(String(e.message)));
@@ -263,6 +264,8 @@ function step(e, dt) {
   }
   const s = { state: e.state, stateTime: e.stateTime, speed };
   if (e.state === 'attack') s.attackT = Math.min(1, e.stateTime / e.c.timings.attack.duration);
+  // Extra model inputs for scripted poses (ceil, eyeH, breath, glow, reach, hum, ...).
+  if (opts.extra) Object.assign(s, opts.extra);
   e.c.animate(dt, t, s);
   if (e.type === 'mother' && sister) sister.animate(dt, t, { state: 'caged', stateTime: t, speed: 0 });
 }
@@ -356,6 +359,7 @@ window.T = {
     return e.stateTime;
   },
   play: (s = 1) => { tscale = s; },
+  extra: (o) => { opts.extra = o || null; },
   state: (type, st) => setState(type, st),
   set: (k, v) => { opts[k] = v; if (k === 'hits') $('hits').checked = v; },
   work: (on) => { $('work').checked = on; $('work').onchange({ target: { checked: on } }); },

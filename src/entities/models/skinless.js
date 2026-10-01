@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   mesh, hit, instMats, cached, normState, progress, colorLerp,
-  sweep, blob, prof, merge, xf, mirrorX, spike,
+  sweep, blob, prof, merge, xf, mirrorX, spike, glowEyes,
   Rig, Animator, clamp, lerp, smooth, ramp, easeOut, easeIn, wobble, fbm3, PI, TAU,
 } from './common.js';
 import { humanoidDims, buildHumanoid, rigHumanoid, solveLegs, bipedGait, stand } from './skeleton.js';
@@ -9,6 +9,9 @@ import { humanoidDims, buildHumanoid, rigHumanoid, solveLegs, bipedGait, stand }
 // Skinless: flayed, emaciated humanoid. Striated muscle, white tendons,
 // lipless teeth, lidless eyes. Hunched sprint with arms swept back.
 // Extra state 'scream' (also used for 'notice'): head back, arms spread.
+// 'lurk': stock still with its head cocked, mouth working on s.talk (0..1)
+// while it calls in someone else's voice. 'kill': face to face, whispering,
+// then the scream. setShine(k): lidless eyes catching your flashlight.
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const D = humanoidDims({ thigh: 0.47, shin: 0.45, upperArm: 0.31, forearm: 0.29, shoulderX: 0.15, chestY: 0.2 });
@@ -178,6 +181,7 @@ export function buildSkinless() {
   mesh(A.eyes, eye, H.head);
   mesh(A.jaw, flesh, jaw);
   mesh(A.teethL, teeth, jaw);
+  const shine = glowEyes(H.head, [V(0.034, 0.1, 0.1), V(-0.034, 0.1, 0.1)], { r: 0.0065, color: 0x902410 });
   for (let s = 0; s < 2; s++) {
     mesh(A.upperArm, flesh, H.arm[s]);
     mesh(A.forearm, flesh, H.fore[s]);
@@ -191,8 +195,8 @@ export function buildSkinless() {
   rigHumanoid(rig, H);
   rig.add('jaw', jaw);
   rig.finalize();
-  const anim = new Animator(rig, { attack: 0.1, hurt: 0.06, scream: 0.12, notice: 0.12, dead: 0.1, run: 0.2 });
-  let phase = 0, t = 0;
+  const anim = new Animator(rig, { attack: 0.1, hurt: 0.06, scream: 0.12, notice: 0.12, dead: 0.1, run: 0.2, lurk: 0.5, kill: 0.15 });
+  let phase = 0, t = 0, talk = 0;
   const seed = Math.random() * 50;
   // Sudden head jerks.
   const jerk = (k) => Math.sign(wobble(t * 2.3, seed + k)) * Math.max(0, Math.abs(wobble(t * 2.3, seed + k)) - 0.55) * 1.6;
@@ -278,6 +282,42 @@ export function buildSkinless() {
       r.ra('armL', -0.4 * k, 0, 0.4 * k);
       r.ra('armR', -0.3 * k, 0, -0.5 * k);
     },
+    // Calling for help: dead still, head cocked too far, only the mouth moves.
+    lurk(r) {
+      const br = Math.sin(t * 1.4);
+      stand(r, H, 1.2, 0.06, -0.05);
+      r.p('hips', 0, -0.05 + 0.004 * br, -0.03);
+      r.r('spine', 0.22, 0, 0.05);
+      r.r('chest', 0.18 + 0.02 * br, 0, 0.04);
+      r.r('neck', -0.1 + 0.08 * jerk(1), 0.15, 0.55 + 0.1 * jerk(3));
+      r.r('head', 0.05, 0.1, 0.5);
+      r.r('jaw', 0.06 + 0.35 * talk);
+      for (let i = 0; i < 2; i++) {
+        const x = i ? -1 : 1, n = i ? 'R' : 'L';
+        r.r('arm' + n, -0.1, 0, x * 0.08);
+        r.r('fore' + n, -0.2 - 0.25 * Math.max(0, wobble(t * 3, seed + i * 7)), 0, 0);
+        r.r('hand' + n, 0.1 + 0.4 * Math.max(0, wobble(t * 4, seed + i * 3)), 0, 0);
+      }
+    },
+    // Kill-cam: leans in until its face fills yours, whispers, then screams.
+    kill(r, s) {
+      const st = s.stateTime;
+      const k = easeOut(st / 0.4), sc = smooth((st - 0.82) / 0.12), tr = Math.sin(t * 47) * 0.04 * sc;
+      stand(r, H, 1.25, 0.08, -0.1);
+      r.p('hips', 0, -0.08 * k, 0.04 * k);
+      r.r('spine', 0.28 + 0.2 * k, 0, 0);
+      r.r('chest', 0.22 + 0.15 * k - 0.2 * sc + tr, 0, 0);
+      r.r('neck', -0.25 - 0.1 * k - 0.15 * sc, 0, lerp(0.45 * k, 0, sc) + tr);
+      r.r('head', -0.1 - 0.15 * k - 0.25 * sc, 0, lerp(0.3 * k, 0, sc));
+      const talk = st < 0.8 ? 0.12 * Math.max(0, Math.sin(st * 22)) : 0;
+      r.r('jaw', 0.06 + talk + 0.85 * sc + tr * 2);
+      for (let i = 0; i < 2; i++) {
+        const x = i ? -1 : 1, n = i ? 'R' : 'L';
+        r.r('arm' + n, lerp(-0.25, -1.35, k), 0, x * lerp(0.12, -0.25, k));
+        r.r('fore' + n, lerp(-0.35, -0.9, k), 0, 0);
+        r.r('hand' + n, 0.3 * k, 0, x * 0.3 * k);
+      }
+    },
     dead(r, s) {
       const st = s.stateTime;
       const buckle = smooth(st / 0.4), fall = easeIn((st - 0.3) / 0.7), settle = smooth((st - 1.0) / 0.4);
@@ -305,6 +345,7 @@ export function buildSkinless() {
 
   function animate(dt, time, sIn) {
     const s = normState(sIn);
+    talk = sIn?.talk ?? 0;
     t = time;
     if (s.state === 'walk') phase += (dt * s.speed) / walkStride(s.speed);
     else if (s.state === 'run') phase += (dt * s.speed) / runStride(s.speed);
@@ -327,10 +368,13 @@ export function buildSkinless() {
     ],
     lights: [],
     timings: TIMINGS,
-    states: ['idle', 'walk', 'run', 'notice', 'scream', 'attack', 'hurt', 'dead'],
+    states: ['idle', 'walk', 'run', 'notice', 'scream', 'attack', 'hurt', 'dead', 'lurk', 'kill'],
     nodes: { head: H.head, jaw, hands: H.hand },
+    // Kill-cam aim and the eyeshine test point: between the eyes.
+    focus: V(0, 0.095, 0.09),
+    setShine: (k) => shine.set(k),
     animate,
     flash: (v) => M.flash(v),
-    dispose() { M.dispose(); },
+    dispose() { M.dispose(); shine.dispose(); },
   };
 }

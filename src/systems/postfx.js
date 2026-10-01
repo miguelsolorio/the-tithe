@@ -90,6 +90,10 @@ export class PostFX {
     this.fadeSpeed = 1.5;
     this.pulse = 0;
     this.distort = 0;
+    // Encounter fear: jolt() spikes on a scare and decays fast; presence
+    // (0..1) is set each frame from how close something hunting you is.
+    this.jolt = 0;
+    this.presence = 0;
     this.tint = new THREE.Color(1, 1, 1);
     this.tintTarget = new THREE.Color(1, 1, 1);
     this.tintAmount = 0;
@@ -108,6 +112,11 @@ export class PostFX {
     this.damage = Math.min(1, this.damage + amount);
   }
 
+  // A scare: a hard warp and colour split that snaps back in about half a second.
+  scare(amount) {
+    this.jolt = Math.min(1.5, this.jolt + amount);
+  }
+
   // Zone grade colour and strength; eases over ~2 s.
   setGrade(color, amount) {
     this.tintTarget.set(color);
@@ -123,6 +132,8 @@ export class PostFX {
   update(dt, t, { health01 = 1 } = {}) {
     const u = this.horror.uniforms;
     this.damage = Math.max(0, this.damage - dt * 0.8);
+    this.jolt = Math.max(0, this.jolt - dt * 2.4);
+    const fear = this.presence;
     const df = this.fadeTarget - this.fade;
     this.fade += Math.sign(df) * Math.min(Math.abs(df), dt * this.fadeSpeed);
     const low = clamp((0.35 - health01) / 0.35, 0, 1);
@@ -134,14 +145,14 @@ export class PostFX {
     u.uTime.value = t;
     u.uGrain.value = 0.075 + low * 0.04;
     u.uDamage.value = Math.min(1, this.damage + low * 0.25);
-    u.uAberration.value = 0.0015 + this.damage * 0.006 + low * 0.002;
-    u.uVignette.value = 1.0 + low * 0.2;
+    u.uAberration.value = 0.0015 + this.damage * 0.006 + low * 0.002 + fear * 0.004 + this.jolt * 0.012;
+    u.uVignette.value = 1.0 + low * 0.2 + fear * 0.3;
     u.uPulse.value = this.pulse;
     u.uFade.value = this.fade;
     u.uTint.value.copy(this.tint);
     u.uShadowTint.value.copy(this.tint);
     u.uTintAmount.value = this.tintAmount;
-    u.uDistort.value = this.distort;
+    u.uDistort.value = this.distort + fear * 0.9 + this.jolt * 3;
   }
 
   render() {

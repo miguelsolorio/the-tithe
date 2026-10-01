@@ -56,8 +56,14 @@ export class Player {
     this.eyeScaleTarget = 1;
     this.crouchZone = false;
     this.water = { depth: 0, surface: -Infinity };
+    // Dying under water left the mix muffled; the update only un-muffles on a change.
+    if (this.underwater) this.game.audio.setUnderwater(false);
     this.underwater = false;
     this.drownTimer = 0;
+    // Kill-cams: held carries you (feet position) in something's hand;
+    // forceUnder drags you under water that isn't deep enough to cover you.
+    this.held = null;
+    this.forceUnder = false;
     this.speedScale = 1;
     this.noise = 0;
     this.moving = false;
@@ -101,9 +107,18 @@ export class Player {
       // Knock the view slightly away from the hit.
       this.pitch += 0.03;
     }
+    if (source?.from) {
+      // Struck by something: snap the head away from the side it came from.
+      const dx = source.from.x - this.position.x;
+      const dz = source.from.z - this.position.z;
+      const side = (dx * Math.cos(this.yaw) - dz * Math.sin(this.yaw)) / (Math.hypot(dx, dz) || 1);
+      this.yaw += 0.08 * side;
+      this.pitch += 0.05;
+      this.game.fx.scare(0.5);
+    }
     if (this.health <= 0) {
       this.dead = true;
-      this.game.onPlayerDeath(source?.cause || null);
+      this.game.onPlayerDeath(source?.cause || null, source?.killer || null);
     }
   }
 
@@ -175,7 +190,11 @@ export class Player {
     this.velocity.x += (_wish.x - this.velocity.x) * k;
     this.velocity.z += (_wish.z - this.velocity.z) * k;
     this.move.height = C.height * this.eyeScale;
-    level.physics.move(this.move, this.velocity.x * dt, this.velocity.z * dt, dt);
+    if (this.held) {
+      this.position.copy(this.held);
+      this.velocity.set(0, 0, 0);
+      this.move.vy = 0;
+    } else level.physics.move(this.move, this.velocity.x * dt, this.velocity.z * dt, dt);
     this.game.props.touch(this.move, this.velocity.x, this.velocity.z, this.sprinting);
     const hs = Math.hypot(this.velocity.x, this.velocity.z);
     this.moving = hs > 0.4;
@@ -196,7 +215,7 @@ export class Player {
 
     // ---- Drowning (flood) ----
     const eyeWorld = this.position.y + this.eyeHeight;
-    const under = water.surface > eyeWorld - 0.05;
+    const under = water.surface > eyeWorld - 0.05 || this.forceUnder;
     if (under !== this.underwater) {
       this.underwater = under;
       g.audio.setUnderwater(under);

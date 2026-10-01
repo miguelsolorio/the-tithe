@@ -24,6 +24,10 @@ const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
 const _eye = new THREE.Vector3();
 const _pp = new THREE.Vector3();
+const _step = new THREE.Vector3();
+const _sh = new THREE.Vector3();
+const _sd = new THREE.Vector3();
+const _sf = new THREE.Vector3();
 
 export const BASE = {
   health: 80,
@@ -44,6 +48,16 @@ export const BASE = {
   attackSound: null,
   deathSound: 'enemyDie',
   hurtSound: null,
+  // Footsteps: { sound, stride, runStride, walkGain, runGain } (metres per step).
+  steps: null,
+  // Dying to it turns the camera onto its face (main.js onPlayerDeath):
+  // its sound, how long before the cut to black (ms), and whether your
+  // flashlight stays on (else it sputters out). onKillCam() adds extras.
+  killCam: false,
+  killSound: null,
+  killGain: 1,
+  killCut: 900,
+  killLight: false,
   blood: 'blood',
   aquatic: false,
   canStagger: true,
@@ -210,9 +224,10 @@ export class Enemy {
     } else this.lostTimer += dt;
 
     this.think(dt);
+    this.stepSounds(dt);
 
     // Gravity / ground for non-moving states.
-    if (this.state !== 'chase' && this.state !== 'wander' && this.state !== 'search' && !this.cfg.static) {
+    if (this.state !== 'chase' && this.state !== 'wander' && this.state !== 'search' && this.state !== 'kill' && !this.cfg.static) {
       this.level.physics.move(this.move, 0, 0, dt);
     }
     this.root.rotation.y = this.yaw;
@@ -254,7 +269,11 @@ export class Enemy {
           this.setState('search');
           break;
         }
-        this.moveToward(this.seesPlayer ? p.position : this.lastSeen, this.cfg.runSpeed, dt);
+        // Close enough to touch: hold there rather than walking into the player.
+        if (this.seesPlayer && d < this.cfg.radius + 0.45) {
+          this.speed = 0;
+          this.face(p.position, dt);
+        } else this.moveToward(this.seesPlayer ? p.position : this.lastSeen, this.cfg.runSpeed, dt);
         break;
       }
       case 'search': {
@@ -286,6 +305,23 @@ export class Enemy {
         if (this.stateTime >= (this.model.timings?.hurt?.duration ?? 0.35)) this.setState('chase');
         break;
       }
+      case 'kill': {
+        // Kill-cam: close to arm's length and hold the player's gaze on its face.
+        this.face(p.position, dt, 2);
+        if (d > 0.9) this.moveToward(p.position, this.cfg.walkSpeed * 1.6, dt);
+        else if (d < 0.7) {
+          // Too close for the face to be seen: back off along its own facing.
+          const step = Math.min(0.85 - d, 3 * dt);
+          this.level.physics.move(this.move, -Math.sin(this.yaw) * step, -Math.cos(this.yaw) * step, dt);
+          this.speed = 0;
+        } else this.speed = 0;
+        const head = this.model.nodes?.head;
+        const look = head ? head.localToWorld(this.model.focus ? _eye.copy(this.model.focus) : _eye.set(0, 0, 0)) : this.eye();
+        if (p.lookOverride) p.lookOverride.target.copy(look);
+        else p.lookAt(look, 2, 12);
+        p.lookOverride.time = 2;
+        break;
+      }
       default:
         this.thinkExtra?.(dt, d);
     }
@@ -297,11 +333,42 @@ export class Enemy {
     _v.set(p.position.x - this.pos.x, 0, p.position.z - this.pos.z).normalize();
     const facing = _v.x * Math.sin(this.yaw) + _v.z * Math.cos(this.yaw);
     if (d <= this.cfg.attackReach && facing > 0.2 && Math.abs(p.position.y - this.pos.y) < 1.8) {
-      p.damage(this.cfg.damage, { cause: this.type, isVector3: false });
+      p.damage(this.cfg.damage, { cause: this.type, isVector3: false, from: this.pos, killer: this });
       this.onHitPlayer?.();
       return true;
     }
     return false;
+  }
+
+  // Eyeshine: how hard its eyes throw your flashlight back (0..1.4). Needs
+  // the beam on its face and its eyes turned toward you; fades with range.
+  // offset is the point between the eyes in node space (node faces +Z).
+  eyeShine(node, offset, range = 24) {
+    const p = this.game.player;
+    if (!p.flashOn || this.dead || !node) return 0;
+    node.localToWorld(_sh.copy(offset));
+    _sd.subVectors(_sh, p.camera.position);
+    const d = _sd.length();
+    if (d > range || d < 1e-3) return 0;
+    _sd.divideScalar(d);
+    const beam = clamp((_sd.dot(p.lightDir) - 0.94) / 0.04, 0, 1);
+    node.getWorldDirection(_sf);
+    const facing = clamp((-_sf.dot(_sd) - 0.15) / 0.5, 0, 1);
+    // Point blank, the glow would swallow the face: ease it down.
+    const near = 0.4 + 0.6 * clamp((d - 0.7) / 1.8, 0, 1);
+    const k = 1.4 * beam * facing * near * (1 - clamp((d - range * 0.7) / (range * 0.3), 0, 1));
+    return k > 0 && this.level.physics.lineOfSight(p.camera.position, _sh) ? k : 0;
+  }
+
+  // Footsteps you can hear coming (types opt in with cfg.steps).
+  stepSounds(dt) {
+    const st = this.cfg.steps;
+    if (!st || this.speed < 0.2 || this.distToPlayer() > 25) return;
+    const run = this.speed > this.cfg.walkSpeed * 1.25;
+    this.stepDist = (this.stepDist ?? 0) + this.speed * dt;
+    if (this.stepDist < (run ? st.runStride : st.stride)) return;
+    this.stepDist = 0;
+    this.game.audio.play(st.sound, { pos: _step.set(this.pos.x, this.pos.y + 0.1, this.pos.z), gain: run ? st.runGain : st.walkGain });
   }
 
   face(target, dt, rateMul = 1) {

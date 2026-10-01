@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   mesh, pivot, hit, instMats, cached, normState, progress, colorLerp,
-  sweep, blob, prof, merge, xf, mirrorX,
+  sweep, blob, prof, merge, xf, mirrorX, glowEyes,
   Rig, Animator, clamp, lerp, smooth, ramp, easeOut, easeIn, wobble, fbm3, PI, TAU,
 } from './common.js';
 import { humanoidDims, buildHumanoid, rigHumanoid, solveLegs, bipedGait, stand } from './skeleton.js';
@@ -9,7 +9,9 @@ import { humanoidDims, buildHumanoid, rigHumanoid, solveLegs, bipedGait, stand }
 // The drowned: bloated waterlogged corpse, pale blue-grey-green skin with
 // livid patches, wet hair hanging over the face, milky eyes, torn clothes.
 // Extra states: 'dormant' (curled low, < 0.9 m), 'rise' (stands up over
-// timings.rise.duration), 'seated' (on a 0.45 m chair, head bowed).
+// timings.rise.duration, in jerks like a film skipping frames), 'seated' (on
+// a 0.45 m chair, head bowed), 'kill' (grabbing for your face).
+// setShine(k): the milky eyes throwing your flashlight back (Enemy.eyeShine).
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const D = humanoidDims({ thigh: 0.47, shin: 0.46, upperArm: 0.31, forearm: 0.28, hipW: 0.12, shoulderX: 0.19, chestY: 0.22, neckY: 0.27, clavY: 0.19 });
@@ -175,6 +177,7 @@ export function buildDrowned() {
   mesh(A.hair, hair, H.head);
   mesh(A.eyes, eye, H.head);
   mesh(A.jaw, skin, jaw);
+  const shine = glowEyes(H.head, [V(0.042, 0.115, 0.117), V(-0.042, 0.115, 0.117)], { r: 0.0115, color: 0x9ff0e0, xray: true });
   for (let s = 0; s < 2; s++) {
     mesh(A.upperArm, skin, H.arm[s]);
     mesh(A.sleeve, cloth, H.arm[s]);
@@ -190,7 +193,7 @@ export function buildDrowned() {
   rigHumanoid(rig, H);
   rig.add('jaw', jaw);
   rig.finalize();
-  const anim = new Animator(rig, { attack: 0.2, hurt: 0.1, dead: 0.15, rise: 0.05, dormant: 0.6, seated: 0.8, notice: 0.3 });
+  const anim = new Animator(rig, { attack: 0.2, hurt: 0.1, dead: 0.15, rise: 0.05, dormant: 0.6, seated: 0.8, notice: 0.3, kill: 0.15 });
   let phase = 0, t = 0;
   const seed = Math.random() * 50;
 
@@ -229,10 +232,15 @@ export function buildDrowned() {
       r.ra('chest', 0.02 * Math.sin(t * 0.4), 0, 0);
     },
     rise(r, s) {
-      const st = s.stateTime;
+      // Held, then snapped forward, a few frames at a time; now and then it
+      // slips back a little before the next jump.
+      const i = Math.floor(s.stateTime / 0.15);
+      const h = (Math.sin(i * 91.7 + seed) * 4375.5) % 1;
+      const st = Math.max(0, i * 0.15 + (h < -0.6 ? -0.12 : 0.04 * h));
       const kl = 1 - smooth(st / 1.1), kt = 1 - smooth((st - 0.5) / 1.1), kh = 1 - easeIn((st - 1.35) / 0.55);
       curl(r, kl, kt, kh);
-      r.r('jaw', 0.15 + 0.3 * smooth((st - 1.6) / 0.3));
+      r.ra('neck', 0, 0.25 * h, 0.2 * h);
+      r.r('jaw', 0.25 + 0.35 * smooth((st - 1.4) / 0.3));
     },
     seated(r) {
       const br = Math.sin(t * 0.5);
@@ -263,10 +271,11 @@ export function buildDrowned() {
       const i = r.map.get('footR') + 3;
       r.tgt[i + 1] = D.ankleH + (r.tgt[i + 1] - D.ankleH) * 0.35;
       r.tgt[i - 3] *= 0.3;
-      const lol = Math.sin(TAU * phase);
-      r.r('neck', 0.3, 0.1 * lol, 0.2 + 0.1 * lol);
-      r.r('head', 0.1, 0, 0.15);
-      r.r('jaw', 0.2);
+      // Head lolling on a neck that can't hold it, jaw hanging.
+      const lol = Math.sin(TAU * phase), lol2 = wobble(t * 0.6, seed + 6);
+      r.r('neck', 0.12 + 0.08 * lol2, 0.18 * lol, 0.3 + 0.16 * lol + 0.12 * lol2);
+      r.r('head', -0.08, 0.1 * lol2, 0.22 + 0.1 * lol);
+      r.r('jaw', 0.35 + 0.05 * Math.sin(t * 1.7));
       if (run) {
         r.r('armL', -1.0 + 0.1 * lol, 0, 0.15);
         r.r('armR', -1.1 - 0.1 * lol, 0, -0.15);
@@ -310,6 +319,25 @@ export function buildDrowned() {
       r.ra('neck', -0.35 * k, 0, 0.3 * k);
       r.ra('armL', -0.3 * k, 0, 0.3 * k);
       r.ra('armR', -0.2 * k, 0, -0.35 * k);
+    },
+    // Kill-cam: both hands come up for your face and its jaw drops.
+    kill(r, s) {
+      const st = s.stateTime;
+      const k = easeOut(st / 0.35), pull = smooth((st - 0.55) / 0.5);
+      curl(r, 0, 0, 0);
+      stand(r, H, 1.3, 0.12, -0.08);
+      r.p('hips', 0, -0.06 * k - 0.25 * pull, 0.06 * k);
+      r.r('spine', 0.18 * k + 0.25 * pull, 0, 0);
+      r.r('chest', 0.12 * k + 0.2 * pull, 0, 0);
+      r.r('neck', 0.15 - 0.25 * k, 0.1 * Math.sin(t * 9) * k, 0.25 * (1 - k));
+      r.r('head', 0.05, 0, 0.12);
+      r.r('jaw', 0.25 + 0.5 * k);
+      for (let i = 0; i < 2; i++) {
+        const x = i ? -1 : 1, n = i ? 'R' : 'L';
+        r.r('arm' + n, lerp(0.05, -1.55, k) + 0.5 * pull, 0, x * lerp(0.15, -0.32, k));
+        r.r('fore' + n, lerp(-0.15, -0.55, k), 0, 0);
+        r.r('hand' + n, 0.35 * k, 0, x * 0.4 * k);
+      }
     },
     dead(r, s) {
       const st = s.stateTime;
@@ -358,10 +386,13 @@ export function buildDrowned() {
     ],
     lights: [],
     timings: TIMINGS,
-    states: ['idle', 'walk', 'run', 'notice', 'attack', 'hurt', 'dead', 'dormant', 'rise', 'seated'],
+    states: ['idle', 'walk', 'run', 'notice', 'attack', 'hurt', 'dead', 'dormant', 'rise', 'seated', 'kill'],
     nodes: { head: H.head, jaw, hands: H.hand },
+    // Kill-cam aim and the eyeshine test point: between the eyes.
+    focus: V(0, 0.105, 0.11),
+    setShine: (k) => shine.set(k),
     animate,
     flash: (v) => M.flash(v),
-    dispose() { M.dispose(); },
+    dispose() { M.dispose(); shine.dispose(); },
   };
 }

@@ -69,6 +69,25 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 - [x] House interior (ground floor + upstairs): liturgy bed at 22% and world sounds (creaks, chants, enemies) at 35%; both swell to 50% as you near a live enemy (3–12 m), easing back down after (`src/levels/proximityAudio.js`). Chant gains lowered (chapel 0.6→0.3, upstairs loop 0.35→0.2)
 - [x] Chanting only near the praying room: chant loops use linear falloff to silence at 7 m (`loops.js`), acolyte chant 0.55→0.3, upstairs chant loop radius 15→7 / gain 0.2→0.12. Liturgy bed drops its steady chant and 9 s bell for a soft bell every 20–40 s plus an occasional creak/thump/low bell every 25–50 s. Music bus 0.55→0.4; house world sounds 25% quiet / 40% near, swelling only within 2–7 m of an enemy
 - [x] Liturgy music (drone + choir) hushed to 4% in the house and only swells (to 40%) within 7 m of an enemy; the soft bell and the occasional creak/thump play outside the bed so they're still heard
+- [x] Scarier encounters (`CREATURE_SFX` in `audio.js`): creature screams, whispers, attacks and footsteps skip the house hush and play at full level; creaks, chants and the liturgy stay hushed
+  - Acolytes and hounds have audible footsteps (`cfg.steps`); acolytes whisper while they wander and hiss prayers while they hunt
+  - Spotted up close or in view: screen jolt, shake and a screech sting (8 s cooldown); braam cooldown 22 s → 12 s
+  - Fear: as something hunting you closes in (6 m → arm's length) the screen warps, colours split, the vignette tightens and a heartbeat speeds up
+  - Getting hit kicks your view away from the attacker; acolyte hits play a wet stab
+  - Kill-cam: dying to an acolyte or hound drags your view onto its face as it shrieks, then hard-cuts to black
+  - Chapel ambush: a whisper behind you, then it screams in the doorway
+- [x] Acolyte is now the crawler (bestiary A5): upright and praying until it hunts you, then it turns its back and folds over backward into a bridge as its spine cracks, and scuttles at you on long arms, head upside down, candle in its teeth, ember eyes, antlers reaching forward like mandibles. Kill-cam: it stands up with its back to you, its upside-down skull at your eye line
+- [x] Hound is the ember hound (bestiary H1): ember eyes that flare when it spots you, bone spines that stand up along its back, a jaw that drops wider on notice, claws you hear skitter; notice is a skitter, snarl, roar and jaw snap
+- [x] Kill-cam: your flashlight sputters out, so only the creature's own light is left
+- [x] Audio mutes while the game's tab is hidden or its window isn't focused (the demo recorder forces it on)
+- [x] Lower floors bestiary picks, each with loud encounter sounds and a kill-cam (`cfg.killCut`, `killLight`, `onKillCam`); new sounds in `src/systems/audio/sfx-lower.js`
+  - Drowned (D1 eyeshine): milky eyes throw your flashlight back, even through its hair (`Enemy.eyeShine`); water runs from its slack jaw; it stands up in jerks, coughing up water; wading footsteps. Kill-cam: it grabs you and pulls you under (teal, muffled, bubbles)
+  - Lamprey (L4 hanging): hangs from the ceiling over its lair on two runs of pipe, drips on you, and drops when you walk underneath; climbs back up when you get away and hunts hand over hand along the ceiling (knocks overhead), then drops again. Where there's no ceiling it lies in the water as before. Kill-cam: it hangs down in front of your face, mouth first
+  - Skinless (S4 the mimic): calls for help in your sister's voice; spotted from afar it stands still in the dark and keeps calling until you come within 7 m or light it up, then the voice breaks into a scream as it charges. Wet footsteps, faint eyeshine. The Mother's summoned skinless skip the act. Kill-cam: whispers "help me" face to face, then screams
+  - Wall maw (W1 breathing wall): the wall around it swells as it breathes, faster as you approach; a red light in its throat brightens on each breath in; spit between the jaws. Every strike (including the caves' rhythm bites) starts with a gasp and a flare of the throat light. Kill-cam: it gapes in your face, lit red from inside, and shuts
+  - Mother (M3 the lullaby): hums a lullaby, head tilted, rocking the cage in her ribs; she stops humming a beat before every attack (0.8 / 0.7 / 0.55 s by phase). Kill-cam: her hand carries you up to her face while she hums
+  - Wolves (F2 it stands up): after dark one pair of eyes sits at standing height and rises above your head when your light comes near, then something walks off on two legs; a few times a night a tall figure stands at the edge of your beam for an instant
+- [x] Dying under water no longer leaves the sound muffled after a retry
 
 ### Mobile
 - [x] Touch controls (`src/ui/touch.js`): floating stick with sprint at the rim, drag to look, attack (drag to aim), use, reload, flashlight, pause; tap the prompt to use and a weapon slot to equip; `?touch` forces them on

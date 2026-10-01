@@ -32,17 +32,28 @@ export function chant(H, dest, pos, gain = 1, base = 98, dur = 3.4) {
   });
 }
 
-// Shared by acolyteScream (480 Hz, clean) and skinlessScream (720 Hz, distorted).
-export function scream(H, dest, pos, f, gain, dur, distort) {
-  const t = H.now();
-  const o = H.out(dest, 0.45, gain, dur + 6, pos);
+// Shared by the acolyte (choked: am gates it like a throat closing) and
+// skinlessScream (720 Hz, distorted). t delays the start.
+export function scream(H, dest, pos, f, gain, dur, distort, t = H.now(), am = 0) {
+  const o = H.out(dest, 0.45, gain, dur + 6 + (t - H.now()), pos);
+  let head = o;
+  if (am) {
+    const g = H.G(0.5);
+    const q = H.O('square', am);
+    const qg = H.G(0.5);
+    H.chain(q, qg, g.gain);
+    g.connect(o);
+    head = g;
+    H.play(q, t, dur + 0.1);
+  }
   const e = H.G(0);
-  e.connect(o);
+  e.connect(head);
   H.env(e.gain, t, 0.04, 1, dur * 0.55, dur * 0.3);
   const m = H.G(1);
   const z = H.Dz();
   m.connect(z);
   const fs = H.formant(distort ? z : m, e, H.V.a);
+  fs.forEach((b, i) => b.frequency.setValueAtTime(H.V.a[i], t));
   H.vowel(fs, H.V.i, t + dur * 0.6);
   [1, 1.013, 0.991, 1.49].forEach((r) => {
     const s = H.O('sawtooth', f * r * 0.8);
@@ -164,9 +175,8 @@ export function squelch(H, dest, pos, gain = 1) {
   for (let i = 0; i < 5; i++) H.nz(o, H.white, 'bandpass', H.rnd(800, 2400), 6, t + H.rnd(0, 0.3), 0.002, H.rnd(0.2, 0.5), 0.03);
 }
 
-export function crack(H, dest, pos, gain = 1) {
-  const t = H.now();
-  const o = H.out(dest, 0.35, 0.9 * gain, 3, pos);
+export function crack(H, dest, pos, gain = 1, t = H.now()) {
+  const o = H.out(dest, 0.35, 0.9 * gain, 3 + (t - H.now()), pos);
   for (let i = 0; i < 6; i++) H.nz(o, H.white, 'highpass', H.rnd(1200, 2600), 1, t + H.rnd(0, 0.16), 0.0008, H.rnd(0.5, 1), H.rnd(0.01, 0.03));
   H.tone(o, 'sine', 110, t, 0.002, 0.7, 0.12, 0, 50);
 }
@@ -180,9 +190,8 @@ export function chomp(H, dest, pos, gain = 1) {
   setTimeout(() => squelch(H, dest, pos, 0.4 * gain), 260);
 }
 
-export function snarl(H, dest, pos, gain = 1) {
-  const t = H.now();
-  const o = H.out(dest, 0.35, 0.7 * gain, 3, pos);
+export function snarl(H, dest, pos, gain = 1, t = H.now()) {
+  const o = H.out(dest, 0.35, 0.7 * gain, 3 + (t - H.now()), pos);
   const dur = 1.3;
   const s = H.O('sawtooth', 80);
   const am = H.G(0.5);
@@ -331,11 +340,158 @@ export function thump(H, dest, pos, gain = 1) {
   H.nz(o, H.brown, 'lowpass', 180, 1, t, 0.004, 0.6, 0.6);
 }
 
+// Breathy whispered words: noise through formants that hop vowels, gated
+// into syllables. Heard on its own it sounds like someone praying under
+// their breath just behind you.
+export function whisper(H, dest, pos, gain = 1, dur = 1.4) {
+  const t = H.now();
+  const o = H.out(dest, 0.5, gain, dur + 4, pos);
+  const n = H.N(H.white);
+  const hp = H.F('highpass', 500);
+  const m = H.G(1);
+  H.chain(n, hp, m);
+  const e = H.G(0);
+  e.connect(o);
+  const fs = H.formant(m, e, H.V.e);
+  const vs = 'eaoiue';
+  let s = t;
+  let k = 0;
+  e.gain.setValueAtTime(0, t);
+  while (s < t + dur) {
+    const len = H.rnd(0.06, 0.16);
+    H.vowel(fs, H.V[vs[k++ % vs.length]], s);
+    e.gain.linearRampToValueAtTime(H.rnd(0.5, 1), s + 0.02);
+    e.gain.linearRampToValueAtTime(0.04, s + len);
+    s += len + H.rnd(0.02, 0.08);
+  }
+  e.gain.linearRampToValueAtTime(0, s + 0.05);
+  n.start(t, Math.random());
+  n.stop(s + 0.1);
+}
+
+// Heavy bare foot on old boards: a low thud with a little wood knock.
+export function acolyteStep(H, dest, pos, gain = 1) {
+  const t = H.now();
+  const o = H.out(dest, 0.25, 0.6 * gain, 1.5, pos);
+  H.nz(o, H.brown, 'lowpass', 220, 1.2, t, 0.004, 1, 0.12);
+  H.nz(o, H.brown, 'bandpass', 380, 2.5, t, 0.002, 0.6, 0.07);
+  H.tone(o, 'sine', 75, t, 0.003, 0.5, 0.1, 0, 45);
+}
+
+// A soft pad and a few claws ticking on the boards.
+export function pawStep(H, dest, pos, gain = 1) {
+  const t = H.now();
+  const o = H.out(dest, 0.2, 0.55 * gain, 1.5, pos);
+  H.nz(o, H.brown, 'lowpass', 300, 1, t, 0.003, 0.6, 0.06);
+  for (let i = 0; i < 3; i++) H.nz(o, H.white, 'highpass', H.rnd(3000, 4500), 1, t + 0.012 + i * H.rnd(0.008, 0.02), 0.0006, H.rnd(0.35, 0.7), 0.01);
+}
+
+// A knife going in: a short swish, a wet thunk and a low hit, played on the player.
+export function stab(H, dest, pos, gain = 1) {
+  const t = H.now();
+  const o = H.out(dest, 0.25, gain, 3, pos);
+  const sw = H.nz(o, H.white, 'bandpass', 900, 1.5, t, 0.03, 0.35, 0.04);
+  sw.frequency.setValueAtTime(900, t);
+  sw.frequency.exponentialRampToValueAtTime(4200, t + 0.07);
+  H.tone(o, 'sine', 120, t + 0.07, 0.002, 1.1, 0.18, 0, 42, 0.15);
+  const x = H.nz(o, H.brown, 'lowpass', 2400, 10, t + 0.07, 0.004, 1.3, 0.22);
+  x.frequency.setValueAtTime(2400, t + 0.07);
+  x.frequency.exponentialRampToValueAtTime(200, t + 0.3);
+  for (let i = 0; i < 4; i++) H.nz(o, H.white, 'bandpass', H.rnd(900, 2600), 6, t + 0.08 + H.rnd(0, 0.18), 0.002, H.rnd(0.2, 0.45), 0.03);
+}
+
+// A run of sharp ticks (claws on boards, clicking), optionally with a pad thud each.
+export function clicks(H, dest, pos, gain, t, n, spacing, { f = 3500, accel = 1, jitter = 0.015, thud = false } = {}) {
+  const o = H.out(dest, 0.25, gain, n * spacing + 3, pos);
+  let s = t;
+  let sp = spacing;
+  for (let i = 0; i < n; i++) {
+    H.nz(o, H.white, 'highpass', f, 1, s, 0.0008, H.rnd(0.4, 0.9), 0.012);
+    if (thud) H.nz(o, H.brown, 'lowpass', 300, 1, s, 0.002, 0.5, 0.05);
+    s += sp + H.rnd(-jitter, jitter);
+    sp *= accel;
+  }
+}
+
+// Distorted saw stack through an a -> o mouth: a throat-tearing roar.
+export function roar(H, dest, pos, gain, t, dur = 1.0, f = 110) {
+  const o = H.out(dest, 0.45, gain, dur + 4 + (t - H.now()), pos);
+  const e = H.G(0);
+  e.connect(o);
+  H.env(e.gain, t, 0.06, 1, dur * 0.5, dur * 0.4);
+  const m = H.G(1);
+  const z = H.Dz();
+  m.connect(z);
+  const fs = H.formant(z, e, H.V.a);
+  fs.forEach((b, i) => b.frequency.setValueAtTime(H.V.a[i], t));
+  H.vowel(fs, H.V.o, t + dur);
+  [1, 1.02, 1.5, 0.5].forEach((r) => {
+    const s = H.O('sawtooth', f * r);
+    s.frequency.setValueAtTime(f * r * 0.8, t);
+    s.frequency.exponentialRampToValueAtTime(f * r * 1.15, t + 0.2);
+    s.frequency.exponentialRampToValueAtTime(f * r * 0.7, t + dur);
+    s.connect(m);
+    H.play(s, t, dur + 0.1);
+  });
+  H.nz(o, H.brown, 'bandpass', 700, 0.8, t, 0.05, 0.6, dur * 0.6, dur * 0.3);
+}
+
+// Jaws slamming shut: a bony click over a low knock.
+export function jawSnap(H, dest, pos, gain = 1, t = H.now()) {
+  const o = H.out(dest, 0.3, gain, 2 + (t - H.now()), pos);
+  H.nz(o, H.white, 'highpass', 2200, 1, t, 0.001, 0.9, 0.05);
+  H.tone(o, 'sine', 95, t, 0.002, 1.2, 0.2, 0, 40, 0.18);
+}
+
+// The crawler folding over backward: its spine cracks in a run that speeds
+// up, then a shriek that chokes off like a throat closing. The cracks line up
+// with the bend in models/acolyte.js (CRACKS).
+export const CRACKS = [0, 0.22, 0.4, 0.55, 0.66, 0.75, 0.82];
+export function crawlerScream(H, dest, pos, gain = 1) {
+  const t = H.now();
+  CRACKS.forEach((k, i) => crack(H, dest, pos, (0.6 + i * 0.06) * gain, t + k));
+  scream(H, dest, pos, 640, 0.42 * gain, 1.1, true, t + 0.98, 23);
+}
+
+// Kill-cam: three fast cracks and the choked shriek right in your ear.
+export function crawlerKill(H, dest, pos, gain = 1) {
+  const t = H.now();
+  [0, 0.08, 0.14].forEach((k) => crack(H, dest, pos, 0.8 * gain, t + k));
+  scream(H, dest, pos, 600, 0.55 * gain, 1.0, true, t + 0.12, 29);
+}
+
+// Palms and bare feet slapping the boards, with a knuckle knock.
+export function crawlStep(H, dest, pos, gain = 1) {
+  const t = H.now();
+  const o = H.out(dest, 0.2, 0.5 * gain, 1.5, pos);
+  H.nz(o, H.brown, 'lowpass', 260, 1, t, 0.003, 0.8, 0.07);
+  H.nz(o, H.white, 'bandpass', H.rnd(900, 1400), 2, t, 0.001, 0.5, 0.03);
+  H.nz(o, H.white, 'highpass', 2500, 1, t + H.rnd(0.01, 0.03), 0.0006, 0.3, 0.01);
+}
+
+// Ember hound spotting you: claws dig in and skitter, a snarl and a roar,
+// then the jaw snaps shut.
+export function houndNotice(H, dest, pos, gain = 1) {
+  const t = H.now();
+  clicks(H, dest, pos, 0.7 * gain, t, 14, 0.045, { thud: true });
+  snarl(H, dest, pos, gain, t + 0.5);
+  roar(H, dest, pos, 0.5 * gain, t + 0.6, 0.9, 120);
+  jawSnap(H, dest, pos, gain, t + 1.62);
+}
+
+export function houndKill(H, dest, pos, gain = 1) {
+  const t = H.now();
+  roar(H, dest, pos, 0.6 * gain, t, 0.8, 120);
+  snarl(H, dest, pos, gain, t + 0.05);
+  jawSnap(H, dest, pos, 1.2 * gain, t + 0.75);
+}
+
 // Public play() names -> recipes above.
 export const DEPTHS_SFX = {
   bell,
   chant,
-  acolyteScream: (H, dest, pos, gain = 1) => scream(H, dest, pos, 480, 0.3 * gain, 1.2, false),
+  acolyteScream: crawlerScream,
+  acolyteKill: crawlerKill,
   revolver: (H, dest, pos, gain = 1) => shot(H, dest, pos, 0.8 * gain, H.engine.zone === 'liturgy' ? 0.9 : 0.5, 5000, 0.35),
   ignite,
   flicker,
@@ -357,4 +513,12 @@ export const DEPTHS_SFX = {
   heart,
   thump,
   staticBurst,
+  acolyteWhisper: (H, dest, pos, gain = 1) => whisper(H, dest, pos, 0.7 * gain, H.rnd(0.9, 1.6)),
+  acolyteStep,
+  pawStep,
+  stab,
+  crawlStep,
+  boneCrack: (H, dest, pos, gain = 1) => crack(H, dest, pos, 0.5 * gain),
+  houndNotice,
+  houndKill,
 };

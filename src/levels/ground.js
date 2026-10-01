@@ -515,11 +515,21 @@ function chapel(L, game) {
     prompt: 'Take the ritual knife',
     message: 'The handle is warm, as if someone just set it down. (Left click to attack.)',
     onTake: (g) => {
+      // A whisper just behind your shoulder, then it's in the doorway, screaming.
+      setTimeout(() => {
+        if (g.levels.current?.id !== 'ground') return;
+        const p = g.player.position;
+        const behind = new THREE.Vector3(p.x + Math.sin(g.player.yaw) * 1.2, p.y + 1.6, p.z + Math.cos(g.player.yaw) * 1.2);
+        g.audio.play('acolyteWhisper', { pos: behind, gain: 0.8 });
+      }, 900);
       setTimeout(() => {
         if (g.levels.current?.id !== 'ground') return;
         g.audio.play('creak', { pos: new THREE.Vector3(13, 1.2, -5.5) });
         const e = g.enemies.create(L.level, { type: 'acolyte', id: 'g_ac_chapel', pos: new THREE.Vector3(12.2, 0, -5.5), yaw: Math.PI / 2, idle: 'stand' });
-        e?.alert(g.player.position);
+        if (!e) return;
+        e.alert(g.player.position);
+        e.onNotice();
+        g.enemies.spotted(e, true);
       }, 2200);
     },
   });

@@ -120,7 +120,12 @@ const MAWS = [
   ['v_maw_neck', 'z', -12, 14.5, -0.4, 1, 2.2, 0.8],
 ];
 
+// Through the maw's own strike so every bite gets its tell (a gasp, the throat flaring).
 const lunge = (e, g) => {
+  if (e.strike) {
+    e.strike();
+    return;
+  }
   e.setState('lunge');
   e.bit = false;
   g.audio.play('mawLunge', { pos: e.pos.clone() });
@@ -137,10 +142,10 @@ export function maws(L, after) {
     for (const e of L.level.enemies) {
       if (e.type !== 'wallMaw' || e.dead) continue;
       // A hit knocks a maw into a state it never leaves; put it back.
-      if (!['dormant', 'lunge', 'retract'].includes(e.state)) e.setState('dormant');
+      if (!['dormant', 'notice', 'lunge', 'retract', 'kill'].includes(e.state)) e.setState('dormant');
       const r = rhythm[e.id];
       if (!r) continue;
-      if (e.state === 'lunge') {
+      if (e.state === 'lunge' || e.state === 'notice') {
         e._beat = r[0];
         continue;
       }

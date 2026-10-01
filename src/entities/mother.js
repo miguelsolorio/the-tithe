@@ -11,10 +11,16 @@ import { getDecalMaterial } from '../world/materials.js';
 // does double damage to her. Phases by health: >60% lash/spit/slam, 60-30%
 // adds and faster attacks, <30% enraged (short cooldowns, bigger volleys, the
 // wrist chains tear out of the walls).
+// Between attacks she hums a lullaby, cradling the cage in her ribs; she
+// stops humming a beat before every attack, so the silence is the warning.
+// Kill-cam: one hand closes around you and lifts you up to her face while
+// she hums.
 
 const _a = new THREE.Vector3();
 const _b = new THREE.Vector3();
 const _c = new THREE.Vector3();
+const _d = new THREE.Vector3();
+const _e = new THREE.Vector3();
 const SALT = Math.random().toString(36).slice(2, 6);
 let SERIAL = 0;
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -25,6 +31,8 @@ const PHASES = [
   { speed: 1.28, cd: [1.0, 1.7], spit: 5, turn: 1.6, hold: 1.0, adds: 3, summonCd: 14 },
 ];
 const MAX_ADDS = 4;
+// The hush before each attack, by phase (seconds of silence).
+const HUSH = [0.8, 0.7, 0.55];
 const LASH = { reach: 7.6, dmg: 28 };
 const SLAM = { trigger: 7.8, radius: 3.0, dmg: 34 };
 const BILE = { g: 9, direct: 14, splash: 7, splashR: 1.8 };
@@ -35,7 +43,7 @@ let bileDecal = null;
 
 export class Mother extends Enemy {
   constructor(game, level, spec) {
-    super(game, level, spec, { health: spec.health ?? 1400, static: true, canStagger: false, radius: 3, deathSound: null, sightRange: 80 });
+    super(game, level, spec, { health: spec.health ?? 1400, static: true, canStagger: false, radius: 3, deathSound: null, sightRange: 80, killCam: true, killCut: 3200, killLight: true });
     this.hooks = spec.hooks || {};
     this.anchorsWorld = (spec.anchorsWorld || []).map((v) => v.clone());
     this.snapT = this.anchorsWorld.map(() => -1);
@@ -49,6 +57,15 @@ export class Mother extends Enemy {
     this.cool = 1.5;
     this.cds = { lash: 0, slam: 0, spit: 0, summon: 0 };
     this.lashSide = 'left';
+    // The lullaby: the loop while she hums, how far into it her pose is
+    // (0..1), the wait before she starts again, and an attack held back by
+    // the hush before it.
+    this.hum = null;
+    this.humK = 0;
+    this.humT = 0;
+    this.pending = null;
+    this.hushT = 0;
+    this.grab = null;
     this.lastHurtSnd = -9;
     this.lastStagger = -9;
     this.fightOn = false;
@@ -100,6 +117,7 @@ export class Mother extends Enemy {
   startFight() {
     if (this.dead || this.state !== 'submerged') return false;
     this.setState('rise');
+    this.startHum();
     for (const s of this.sources) s.enabled = true;
     return true;
   }
@@ -110,14 +128,32 @@ export class Mother extends Enemy {
     this.clearAdds();
     this.clearBile();
     this.fightOn = false;
+    this.pending = null;
+    this.stopHum(1);
     this.setState('submerged');
     for (const s of this.sources) s.enabled = false;
     this.game.hud.boss(null);
   }
 
+  startHum() {
+    if (this.hum || this.dead) return;
+    this.hum = this.game.audio.loop('motherHum', { pos: this.headPos().clone(), gain: 1.3 });
+    // Let the lullaby carry over the heart's bed.
+    this.game.audio.setZoneLevel(0.55, 1);
+  }
+
+  stopHum(fade = 0.06) {
+    if (!this.hum) return;
+    this.hum.stop(fade);
+    this.hum = null;
+    this.game.audio.setZoneLevel(1, 0.4);
+  }
+
   // ---------- Frame ----------
   update(dt) {
     super.update(dt);
+    this.humK += ((this.hum ? 1 : 0) - this.humK) * Math.min(1, dt * 3);
+    if (this.hum) this.hum.setPos(this.headPos());
     this.updateBile(dt);
     this.updateClimbers(dt);
     this.updateAnchors(dt);
@@ -135,6 +171,9 @@ export class Mother extends Enemy {
       speed: 0,
       attackT: 0,
       lashSide: this.lashSide,
+      hum: this.humK,
+      grab: this.grab?.hand,
+      grabSide: this.grab?.side,
     });
   }
 
@@ -165,9 +204,21 @@ export class Mother extends Enemy {
         return;
       case 'idle':
         this.track(dt, 1);
+        if (this.pending) {
+          // Silence is the warning: the humming stops a beat before she strikes.
+          this.hushT -= dt;
+          if (this.hushT <= 0) this.launch();
+          return;
+        }
+        if (!this.hum && !g.player.dead) {
+          this.humT -= dt;
+          if (this.humT <= 0) this.startHum();
+        }
         this.cool -= dt;
         if (this.cool <= 0 && !g.player.dead) this.choose();
         return;
+      case 'kill':
+        return this.thinkKill(dt);
       case 'lash':
         return this.thinkLash(dt, tm.lash || { duration: 1.6, hit: 0.9 });
       case 'slam':
@@ -222,7 +273,18 @@ export class Mother extends Enemy {
         break;
       }
     }
+    // Hold it back for the hush; launch() starts it.
+    this.pending = pick;
+    this.hushT = HUSH[this.phase];
+    this.stopHum();
+  }
+
+  launch() {
+    const pick = this.pending;
+    this.pending = null;
     const g = this.game;
+    const r = this.rel();
+    const P = PHASES[this.phase];
     const k = this.phase === 2 ? 0.6 : this.phase === 1 ? 0.8 : 1;
     if (pick === 'lash') {
       this.lashSide = r.a >= 0 ? 'left' : 'right';
@@ -243,7 +305,65 @@ export class Mother extends Enemy {
   finishAttack() {
     const P = PHASES[this.phase];
     this.cool = rnd(P.cd[0], P.cd[1]);
+    this.humT = 0.9;
     this.setState('idle');
+  }
+
+  // ---------- Kill-cam: her hand closes around you and lifts you to her face ----------
+  canKillCam() {
+    return this.rel().d < 9 && this.state !== 'submerged' && this.state !== 'rise';
+  }
+
+  onKillCam() {
+    const p = this.game.player;
+    const r = this.rel();
+    this.pending = null;
+    const side = r.a >= 0 ? 0 : 1;
+    const start = new THREE.Vector3(side ? -2.6 : 2.6, 1.2, 1.5);
+    const palm = this.model.hands?.[side];
+    if (palm) {
+      this.root.updateMatrixWorld();
+      this.root.worldToLocal(palm.getWorldPosition(start));
+    }
+    this.grab = { side, start, eye: p.camera.position.clone(), hand: new THREE.Vector3(), held: false };
+    this.startHum();
+  }
+
+  thinkKill() {
+    const g = this.game;
+    const p = g.player;
+    const G = this.grab;
+    if (!G) return;
+    const t = this.animT;
+    const s = G.side ? -1 : 1;
+    const ease = (x) => x * x * (3 - 2 * x);
+    const reach = ease(Math.min(1, t / 0.6));
+    const lift = ease(clamp((t - 0.75) / 1.25, 0, 1));
+    // Your eyes: where she grabbed you, lifted to just in front of her face.
+    this.root.updateMatrixWorld();
+    const face = this.root.localToWorld(_b.set(s * 0.25, 6.05, 2.45));
+    const eye = _c.lerpVectors(G.eye, face, lift);
+    // Her hand: from where it was to just under and behind you, then it carries you.
+    const head = this.model.nodes?.head;
+    const look = head ? head.localToWorld(_a.set(0, 0.5, 0.45)) : this.headPos();
+    const toFace = _d.subVectors(look, eye).setY(0).normalize();
+    const under = _e.copy(eye).addScaledVector(toFace, -0.55);
+    under.y -= 1.05;
+    this.root.worldToLocal(under);
+    if (under.length() > 7.2) under.setLength(7.2);
+    G.hand.copy(G.start).lerp(under, reach);
+    if (!G.held && t >= 0.6) {
+      G.held = true;
+      g.audio.play('motherGrab', { gain: 1.1 });
+      p.shake = 0.6;
+    }
+    if (G.held) {
+      if (!p.held) p.held = new THREE.Vector3();
+      p.held.set(eye.x, eye.y - p.eyeHeight, eye.z);
+    }
+    if (p.lookOverride) p.lookOverride.target.copy(look);
+    else p.lookAt(look, 2, 6);
+    p.lookOverride.time = 2;
   }
 
   headPos(out = _c) {
@@ -265,7 +385,7 @@ export class Mother extends Enemy {
       const hp = hand ? hand.getWorldPosition(_a) : this.headPos(_a);
       g.audio.play('crack', { pos: hp.clone() });
       if (r.d < LASH.reach && side > -0.42 && side < 1.85 && Math.abs(g.player.position.y - this.pos.y) < 3) {
-        g.player.damage(LASH.dmg, { cause: 'mother' });
+        g.player.damage(LASH.dmg, { cause: 'mother', from: this.pos, killer: this });
         g.player.shake = Math.min(1, g.player.shake + 0.6);
       }
     }
@@ -292,7 +412,7 @@ export class Mother extends Enemy {
         _a.set(Math.sin(this.yaw), 0, Math.cos(this.yaw)).multiplyScalar(4.7).add(this.pos);
         hit = Math.hypot(p.x - _a.x, p.z - _a.z) < SLAM.radius + 1;
       }
-      if (hit) g.player.damage(SLAM.dmg, { cause: 'mother' });
+      if (hit) g.player.damage(SLAM.dmg, { cause: 'mother', from: this.pos, killer: this });
     }
     // Hands dig into the rim, her head low over the edge: the opening.
     if (!this.held && this.animT >= 1.45) {
@@ -406,8 +526,8 @@ export class Mother extends Enemy {
     }
     if (g.player.dead) return;
     const pp = g.player.position;
-    if (direct) g.player.damage(BILE.direct, { cause: 'mother' });
-    else if (Math.hypot(pp.x - point.x, pp.z - point.z) < BILE.splashR && Math.abs(pp.y - point.y) < 1.8) g.player.damage(BILE.splash, { cause: 'mother' });
+    if (direct) g.player.damage(BILE.direct, { cause: 'mother', from: this.pos, killer: this });
+    else if (Math.hypot(pp.x - point.x, pp.z - point.z) < BILE.splashR && Math.abs(pp.y - point.y) < 1.8) g.player.damage(BILE.splash, { cause: 'mother', from: this.pos, killer: this });
   }
 
   clearBile() {
@@ -587,6 +707,8 @@ export class Mother extends Enemy {
 
   onDeath() {
     const g = this.game;
+    this.pending = null;
+    this.stopHum(0.3);
     g.audio.play('bossDeath', { pos: this.headPos().clone() });
     g.player.shake = 1;
     this.fightOn = false;
@@ -605,6 +727,7 @@ export class Mother extends Enemy {
 
   dispose() {
     this.clearBile();
+    this.stopHum(0.1);
     super.dispose();
   }
 }

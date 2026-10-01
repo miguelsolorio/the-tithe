@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import {
   mesh, pivot, hit, instMats, cached, normState, progress, colorLerp, COL,
-  sweep, blob, prof, merge, xf, mirrorX, spike,
-  Rig, Animator, ik2, clamp, lerp, smooth, ramp, easeOut, easeIn, wobble, fbm3, PI, TAU,
+  sweep, blob, prof, merge, xf, mirrorX, spike, glowEyes,
+  Rig, Animator, ik2, clamp, lerp, smooth, ramp, easeOut, easeIn, wobble, fbm3, damp, PI, TAU,
 } from './common.js';
 
 // Horned hound: skinless dog, glossy muscle and white tendons, ribs showing,
-// curled ram horns, lipless jaws. Extra state 'sniff' (idle variant).
+// curled ram horns, lipless jaws, ember eyes and a ridge of bone spines that
+// stand up when it hunts. Extra state 'sniff' (idle variant).
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const MUS = 0x8e1820, MUS_D = 0x3e060b, TEN = 0xd8c6ae, BONE = 0xd8ccb0, GUM = 0x6a1219;
@@ -179,6 +180,14 @@ function assets() {
         ...[0, 1, 2].map((k) => blob({ r: r0 * 0.7, ws: 6, hs: 4, color: solidC(BONE), fn: (p) => { p.y += r0 * 0.75; p.z -= 0.03 + k * 0.045; } })),
       ]);
     });
+    // Bone spines along the back, bases at y = 0 so scaling Y raises and lowers them.
+    const hackles = (n, z0, dz, len, lift) => merge(Array.from({ length: n }, (_, i) => {
+      const k = Math.sin(((i + 0.5) / n) * PI);
+      const g = spike({ len: len * (0.55 + 0.45 * k), r: 0.011 + 0.006 * k, curve: 0.25, dir: [0, 1, -0.45], bend: [0, 0, -1], radial: 5, seg: 4, color: (o) => colorLerp(o, 0x7a2a26, BONE, 0.8), tip: 0.06 });
+      return xf(g, [0, lift * k, z0 - i * dz]);
+    }));
+    A.spinesT = hackles(6, 0.2, 0.1, 0.11, 0.03);
+    A.spinesP = hackles(4, 0.28, 0.075, 0.07, 0.01);
     return A;
   });
 }
@@ -216,11 +225,17 @@ export function buildHound() {
   const jaw = pivot(head, 0, -0.035, 0.02, 'jaw');
   mesh(A.pelvis, flesh, pelvis);
   mesh(A.chest, flesh, thorax);
+  // Hackles: bone spines that lie low until it hunts.
+  const hackT = pivot(thorax, 0, 0.135, 0, 'hacklesT');
+  const hackP = pivot(pelvis, 0, 0.125, 0, 'hacklesP');
+  mesh(A.spinesT, M.get('bone'), hackT);
+  mesh(A.spinesP, M.get('bone'), hackP);
   mesh(A.neck, flesh, neck);
   mesh(A.head, flesh, head);
   mesh(A.teethU, teeth, head);
   mesh(A.eyes, eye, head);
   mesh(A.horns, horn, head);
+  const eyes = glowEyes(head, [V(0.05, 0.028, 0.06), V(-0.05, 0.028, 0.06)], { r: 0.0105 });
   mesh(A.jaw, flesh, jaw);
   mesh(A.teethL, teeth, jaw);
 
@@ -255,8 +270,8 @@ export function buildHound() {
   tail.forEach((n, i) => rig.add('tail' + i, n));
   const targets = LEGS.map((n) => rig.addVirtual(n));
   rig.finalize();
-  const anim = new Animator(rig, { attack: 0.08, hurt: 0.06, notice: 0.1, dead: 0.1, run: 0.25 });
-  let phase = 0, t = 0;
+  const anim = new Animator(rig, { attack: 0.08, hurt: 0.06, notice: 0.1, dead: 0.1, run: 0.25, kill: 0.08 });
+  let phase = 0, t = 0, glow = 0.3, raise = 0.3;
   const seed = Math.random() * 50;
 
   // Paw cycle: stance slides back (planted), swing lifts and folds.
@@ -335,7 +350,7 @@ export function buildHound() {
       r.r('hingeT', flex * 0.7, 0, 0);
       r.r('neck', 0.05 - 0.12 * Math.sin(TAU * (phase - 0.2)) * amt, 0, 0);
       r.r('head', 0.25, 0, 0);
-      r.r('jaw', 0.35 + 0.15 * Math.sin(TAU * phase));
+      r.r('jaw', 0.5 + 0.2 * Math.sin(TAU * phase));
       tailPose(r, 0.15 + 0.2 * Math.sin(TAU * phase), 0.1 * Math.sin(TAU * phase));
     },
     notice(r, s) {
@@ -347,7 +362,8 @@ export function buildHound() {
       r.r('hingeP', -0.08 * b, 0, 0);
       r.r('neck', lerp(0.3, -0.15, a) + 0.3 * b, 0, 0);
       r.r('head', 0.1 * b, 0, 0);
-      r.r('jaw', 0.1 + 0.45 * b + 0.05 * Math.sin(t * 30) * b);
+      // The jaw drops wider than a jaw should, chattering.
+      r.r('jaw', 0.1 + 0.8 * b + 0.06 * Math.sin(t * 30) * b);
       tailPose(r, lerp(-0.6, 0.3, a), 0);
     },
     attack(r, s) {
@@ -365,6 +381,21 @@ export function buildHound() {
       r.r('head', 0.1 - 0.35 * open, 0, 0);
       r.r('jaw', 0.05 + 0.85 * open);
       tailPose(r, 0.2 * lunge - 0.3, 0);
+    },
+    // Kill-cam: rears up into your face, jaw wide, head shaking.
+    kill(r, s) {
+      const st = s.stateTime;
+      const rise = easeOut(st / 0.3);
+      const shake = Math.sin(st * 26) * 0.12 * rise;
+      standPaws(r, 1.05, 0);
+      r.p('body', 0, 0.35 * rise, 0.1 * rise);
+      r.r('body', -0.5 * rise, 0, 0);
+      for (const i of [2, 3]) r.pa(LEGS[i], 0, 0.3 * rise, 0.3 * rise);
+      // Counter the rear-up so the open jaws point at the camera, not the ceiling.
+      r.r('neck', 0.25 * rise, shake, 0);
+      r.r('head', 0.2 * rise, 0, shake);
+      r.r('jaw', 0.15 + 0.85 * rise + 0.05 * Math.sin(st * 31));
+      tailPose(r, -0.4, 0);
     },
     hurt(r, s) {
       POSES.idle(r);
@@ -425,11 +456,22 @@ export function buildHound() {
     else if (s.state === 'run') phase += (dt * s.speed) / runStride(s.speed);
     anim.update(dt, s, (r, st) => (POSES[st.state] || POSES.idle)(r, st));
     solveLegs();
+    // Ember eyes glint even at rest and flare when it spots you; the spines
+    // snap up with them and stay up while it hunts.
+    const hunting = ['notice', 'run', 'attack', 'hurt', 'kill'].includes(s.state);
+    const dead = s.state === 'dead';
+    const g = dead ? 0 : s.state === 'notice' ? 0.6 + 0.9 * smooth(s.stateTime / 0.25) : s.state === 'kill' ? 1.5 : hunting ? 1 : 0.3;
+    glow += (g - glow) * damp(dead ? 1.5 : 10, dt);
+    eyes.set(glow * (0.85 + 0.15 * wobble(t * 11, seed + 9)));
+    raise += ((dead ? 0.45 : hunting ? 1 : 0.3) - raise) * damp(s.state === 'notice' ? 14 : 4, dt);
+    hackT.scale.y = hackP.scale.y = raise;
     M.step(dt);
   }
 
   return {
     root, height: 0.9, radius: 0.4,
+    // Kill-cam aim point, head space: between the eyes and the open jaws.
+    focus: V(0, -0.01, 0.12),
     hitSpheres: [
       hit(head, 0, 0.0, 0.1, 0.13, 'head'),
       hit(neck, 0, 0.05, 0.06, 0.11, 'body'),
@@ -442,10 +484,10 @@ export function buildHound() {
     ],
     lights: [],
     timings: TIMINGS,
-    states: ['idle', 'sniff', 'walk', 'run', 'notice', 'attack', 'hurt', 'dead'],
+    states: ['idle', 'sniff', 'walk', 'run', 'notice', 'attack', 'hurt', 'dead', 'kill'],
     nodes: { head, jaw },
     animate,
     flash: (v) => M.flash(v),
-    dispose() { M.dispose(); },
+    dispose() { M.dispose(); eyes.dispose(); },
   };
 }

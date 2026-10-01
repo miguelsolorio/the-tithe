@@ -9,6 +9,8 @@ const ONE_SHOTS = [
   'bell', 'chant', 'acolyteScream', 'revolver', 'ignite', 'flicker', 'drip', 'splash',
   'gurgle', 'lamprey', 'boom', 'squelch', 'crack', 'skinlessScream', 'chomp', 'snarl',
   'braam', 'screech', 'rush', 'creak', 'stinger', 'heart', 'thump', 'staticBurst',
+  'acolyteWhisper', 'acolyteStep', 'pawStep', 'stab', 'acolyteKill', 'crawlStep', 'boneCrack',
+  'houndNotice', 'houndKill',
   // sfx-weapons.js
   'knifeSwing', 'knifeHit', 'knifeWall', 'shotgun', 'dryFire', 'revolverReload',
   'shotgunReload', 'weaponSwitch', 'bulletHit', 'ricochet', 'pickup', 'ammo', 'keyItem',
@@ -17,8 +19,12 @@ const ONE_SHOTS = [
   'fuse', 'valve', 'grate', 'ropeCut', 'waterRise', 'flood', 'collapse', 'mirrorScare',
   'sisterSob', 'enemyDie', 'houndBite', 'drownedRise', 'mawLunge', 'bossRoar', 'bossLash',
   'bossSpit', 'splat', 'chains', 'bossRise', 'bossHurt', 'bossDeath',
+  // sfx-lower.js
+  'drownedWake', 'drownedCough', 'wadeStep', 'drownedKill', 'drownedUnder', 'ceilingKnock',
+  'lampreyDrop', 'lampreyKill', 'mimicCall', 'mimicBreak', 'mimicKill', 'fleshStep',
+  'mawInhale', 'mawExhale', 'mawGasp', 'mawBite', 'mawKill', 'motherGrab', 'wolfGrowl', 'bipedSteps',
 ];
-const LOOP_NAMES = ['bulbBuzz', 'candle', 'chantLoop', 'waterFlow', 'dripping', 'fleshBreath', 'mawBreath', 'phoneRing', 'floodRush'];
+const LOOP_NAMES = ['motherHum', 'bulbBuzz', 'candle', 'chantLoop', 'waterFlow', 'dripping', 'fleshBreath', 'mawBreath', 'phoneRing', 'floodRush'];
 const ZONES = ['field', 'liturgy', 'undertow', 'viscera', 'boss', 'escape', 'dawn', null];
 const SURFACES = ['grass', 'wood', 'stone', 'dirt', 'water', 'flesh', 'metal'];
 
