@@ -1,15 +1,16 @@
-// Records the 45-second README demo (docs/demo/demo.mp4) from a
-// running dev server with headless Chrome and ffmpeg. Stops short of the
-// heart: the final boss never appears. The animated title card opens it and
-// dives into the game; short clips of the main action are hard cut together
-// (no fades between them); the card closes it.
+// Records the 60-second README demo (docs/demo/demo.mp4) from a
+// running dev server with headless Chrome and ffmpeg. The animated title card
+// opens it and dives into the game; short clips of the main action are hard
+// cut together (no fades between them), ending on a first look at the Mother
+// Below, who kills you; the card closes it. The escape and ending stay out.
 //
 //   npm run dev                       (or the stable server: GAME_URL=http://localhost:5299)
-//   npm run demo                      full video with sound (about six minutes)
+//   npm run demo                      full video with sound (about seven minutes)
 //   npm run demo -- --silent          no audio pass
 //   npm run demo -- --stills [names]  a few stills per segment to a temp folder, for retuning
 //                                     (--dense: one every half second)
 //   npm run demo -- --audio-only      time the real-time audio pass (frame cost, lag at each shot)
+//   npm run demo -- --bed field       a different zone bed under the video (default: liturgy)
 //
 // Headless WebGL runs well below 30 fps, so the video is rendered offline: the
 // page's animation loop is stopped and the game is stepped exactly 1/30 s per
@@ -19,6 +20,11 @@
 // Math.random, and game timers (setTimeout) run on game time. Each segment's
 // audio is cut against the audio clock (calibrated with a blip), so nothing
 // drifts across the level loads.
+//
+// The music doesn't cut with the picture: the game's zone beds (and the dread
+// strings) are left out of the per-clip pass, and one bed (BED, or --bed
+// <zone>) is recorded on its own and runs under the whole video, with each
+// clip's sounds layered on top.
 //
 // Each segment's `script` is a generator body: one `yield` is one frame. The
 // helpers on `demo` (below, in the page) walk nav-grid paths with eased stick
@@ -40,24 +46,56 @@ const WIDTH = 1280;
 const HEIGHT = 720;
 // Rendered larger and scaled down (the game has no antialiasing).
 const SCALE = 1.5;
+// The zone bed (src/systems/audio/music.js) that runs under the whole video,
+// and its average loudness under the clips' sounds (which average about -18 dB).
+const BED = 'liturgy';
+const BED_DB = -27;
+// The bed's level on the ground floor, where the game hushes its own music.
+const GROUND_BED = 0.5;
 
 // Each segment: `seconds` long; `level` starts a fresh debug run there (god
 // mode); `flags` are set first; `weapon` hands over every item and draws that
 // one; `setup` runs once under black; `script` plays it out (see the helpers).
 // `subtitles: false` hides the level's own lines where they'd be out of place.
+// `bed` scales the music bed under the clip (default 1); the quiet house
+// wants it low.
 const SEGMENTS = [
   {
     // The title card draws in over the field at dusk, then dives through the
-    // seal to her phone, ringing in the grass.
-    name: 'phone',
+    // seal onto the dirt track. One shot: down the track toward the cabin as
+    // the light goes, past the scarecrow, then a turn to the wolves at the
+    // edge of the field (hounds, held still) as they howl.
+    name: 'track',
     level: 'field',
     intro: 4.2,
-    seconds: 6.6,
-    setup: `game.place(-5.3, 14.1, -7.85, 10.46, -0.02);`,
+    seconds: 9.6,
+    setup: `game.place(9.9, 43, 6.9, 30, 0.02);
+      demo.wolves = [[10.6, 17.4], [6.0, 15.0], [8.8, 13.6]].map(([x, z]) => {
+        const e = demo.spawnAt('hound', x, z);
+        e.perceive = e.hears = () => false;
+        return e;
+      });`,
+    script: `
+      yield* demo.walkTo([5.9, 30.2], { speed: 0.6, stop: 0.3, look: [4.5, 1.5, 18] });
+      game.audio.play('howl', { pos: { x: 9, y: 3, z: 15 }, gain: 2.5 });
+      // Past the scarecrow to the wolves standing in the field behind it.
+      yield* demo.face([8.4, 0.9, 16], 0.9, { rate: 2.5 });
+      game.audio.play('howl', { pos: { x: 6, y: 3, z: 15 }, gain: 2 });
+      demo.filler = true;
+      yield* demo.face([8.4, 0.7, 15.5], 3, { rate: 1.5 });
+    `,
+  },
+  {
+    // Her phone, ringing in the grass. The wolves are gone.
+    name: 'phone',
+    seconds: 3.4,
+    setup: `const lvl = game.levels.current;
+      for (const e of demo.wolves || []) e.dispose(), lvl.enemies.splice(lvl.enemies.indexOf(e), 1);
+      demo.wolves = null;
+      game.place(-5.3, 14.1, -7.85, 10.46, -0.12);`,
     script: `
       const phone = demo.find('phone');
-      yield* demo.wait(3.5);
-      yield* demo.face(phone.pos, 0.7, { rate: 2.5, pitch: -0.12 });
+      yield* demo.face(phone.pos, 0.4, { rate: 3, pitch: -0.12 });
       yield* demo.walkTo(phone.pos, { stop: 1.05, look: [phone.pos.x, 0.2, phone.pos.z] });
       game.press('KeyF');
       yield* demo.face(phone.pos, 0.3, { rate: 6 });
@@ -98,6 +136,7 @@ const SEGMENTS = [
     // toward the stair hall.
     name: 'foyer',
     level: 'ground',
+    bed: GROUND_BED,
     seconds: 2.2,
     setup: `game.player.flashOn = true; game.place(-0.2, 7.2, 0.5, 3.5, 0.12);`,
     script: `
@@ -110,6 +149,7 @@ const SEGMENTS = [
     // The dining room: an acolyte prays at the head of the rotten table.
     name: 'dining',
     level: 'ground',
+    bed: GROUND_BED,
     seconds: 2.0,
     subtitles: false,
     setup: `game.player.flashOn = true; game.place(-3.0, -3.6, -5.5, -10.6, 0);`,
@@ -123,6 +163,7 @@ const SEGMENTS = [
     // The library: pull the protruding book and the shelf grinds aside.
     name: 'library',
     level: 'ground',
+    bed: GROUND_BED,
     seconds: 2.8,
     setup: `game.player.flashOn = true; game.place(11.3, -5.2, 13.2, -5.5, -0.02);`,
     script: `
@@ -138,6 +179,7 @@ const SEGMENTS = [
     // The blood chapel behind the library: an acolyte comes out from the altar.
     name: 'chapel',
     level: 'ground',
+    bed: GROUND_BED,
     flags: ['chapel.open', 'chapel.lit'],
     weapon: 'revolver',
     seconds: 3.0,
@@ -243,12 +285,15 @@ const SEGMENTS = [
     `,
   },
   {
-    // The cistern: the circle of acolytes at the baptism pool turns on you.
+    // The cistern: the circle of acolytes at the baptism pool turns on you
+    // (staged where the rite gathers them, so they're in view; the rite itself is skipped).
     name: 'cistern',
     level: 'cistern',
     weapon: 'revolver',
     seconds: 3.2,
-    setup: `game.player.flashOn = true; game.place(22.9, 17.2, 23, 12, -0.08);`,
+    setup: `game.player.flashOn = true; game.place(22.9, 17.2, 23, 12, -0.08);
+      game.setFlag('cistern.ritual');
+      for (const [x, z] of [[20.4, 6.9], [25.7, 6.9], [17.6, 10.6]]) demo.spawnAt('acolyte', x, z);`,
     script: `
       yield* demo.walkTo([22.8, 16.6], { speed: 0.55, stop: 0.3 });
       const a = demo.closest('acolyte');
@@ -296,17 +341,53 @@ const SEGMENTS = [
     `,
   },
   {
+    // The heart: step into the ring and the Mother Below stands up out of the
+    // black pool. Two blasts, then her first strike kills you (god mode off,
+    // one hit left) and her hand lifts you to her face as the card cuts in.
+    name: 'boss',
+    level: 'heart',
+    weapon: 'shotgun',
+    seconds: 8.6,
+    subtitles: false,
+    bed: 0.6,
+    // Inside the ring, in her reach: the trigger fires at once, freezes you and looks up.
+    setup: `game.player.flashOn = true; game.place(0.4, 7.2, 0, 0, 0.25);`,
+    script: `
+      const m = game.levels.current.enemies.find((e) => e.type === 'mother');
+      const face = [0, 5.4, 0];
+      yield* demo.until(() => m.state === 'rise', 1);
+      yield* demo.until(() => !game.player.frozen, 5);
+      yield* demo.face(face, 0.25, { rate: 6 });
+      yield* demo.shoot(m);
+      yield* demo.face(face, 0.75, { rate: 5 });
+      yield* demo.shoot(m);
+      // She lashes as soon as the rise is over (after the hush); this one is fatal.
+      yield* demo.until(() => m.fightOn, 3);
+      game.god(false);
+      game.player.health = 1;
+      m.pending = 'lash';
+      m.hushT = 0.45;
+      m.stopHum();
+      yield* demo.until(() => game.player.dead, 3.5);
+      if (!game.player.dead) {
+        demo.log('the Mother missed; killing the player outright');
+        game.player.damage(999, { cause: 'mother', from: m.pos, killer: m });
+      }
+      demo.filler = true;
+      yield* demo.wait(5);
+    `,
+  },
+  {
     name: 'end',
     seconds: 4.35,
     card: true,
   },
 ];
 
-// The final boss stays out of the video: no heart level, no Mother, no
-// post-boss flags. Checked here and again every frame in the page.
-const SPOILERS = /heart|mother|escape/i;
+// The Mother is shown, but not her death, the escape or the ending.
+const SPOILERS = /escape|killed:mother|sister\.free|finish\(/i;
 for (const s of SEGMENTS) {
-  if (SPOILERS.test(JSON.stringify(s))) throw new Error(`segment "${s.name}" would spoil the final boss`);
+  if (SPOILERS.test(JSON.stringify(s))) throw new Error(`segment "${s.name}" would spoil the ending`);
 }
 const TOTAL = SEGMENTS.reduce((n, s) => n + s.seconds, 0);
 
@@ -342,6 +423,9 @@ function installDirector(segments, fps) {
     card.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
   };
 
+  // The death screen never shows; the outro card takes over from the kill-cam.
+  const screen = game.hud.screen.bind(game.hud);
+  game.hud.screen = (name, ...rest) => (name === 'dead' ? undefined : screen(name, ...rest));
   // No tutorial hints in the trailer.
   const say = game.hud.say.bind(game.hud);
   game.hud.say = (text, ...rest) => (/WASD|Shift|Press F|thumb|stick/.test(text) ? undefined : say(text, ...rest));
@@ -421,6 +505,16 @@ function installDirector(segments, fps) {
       };
     }
   }
+  // The clips carry only their own sounds: each level's music bed is killed as
+  // it starts, and the dread strings never swell (both would cut in and out
+  // with the picture). One bed runs under the whole video instead (recordBed).
+  const setZone = game.audio.setZone;
+  game.audio.setZone = (...a) => {
+    setZone(...a);
+    game.audio._bed?.kill();
+    game.audio._bed = null;
+  };
+  game.audio.setDread = () => {};
   const levels = game.levels;
   for (const m of ['get', 'activate']) {
     const f = levels[m].bind(levels);
@@ -448,7 +542,8 @@ function installDirector(segments, fps) {
   const pt = (p) => (Array.isArray(p) ? { x: p[0], y: p.length > 2 ? p[1] : null, z: p[p.length - 1] } : p);
   const sway = (t) => [0.012 * Math.sin(t * 0.55) + 0.005 * Math.sin(t * 1.37 + 1), 0.007 * Math.sin(t * 0.8 + 2)];
   const CHEST = { hound: 0.55, lamprey: 0.35 };
-  const chest = (e) => ({ x: e.pos.x, y: e.pos.y + (CHEST[e.type] ?? 1.25), z: e.pos.z });
+  // An acolyte that has seen you is the crawler, folded back low to the floor.
+  const chest = (e) => ({ x: e.pos.x, y: e.pos.y + (e.crawling ? 0.45 : CHEST[e.type] ?? 1.25), z: e.pos.z });
 
   const segs = segments.map((s) => ({
     ...s,
@@ -566,14 +661,18 @@ function installDirector(segments, fps) {
         yield;
       }
     },
-    // One trigger pull; `kill` makes it the fatal shot, so fights end on cue.
+    // One trigger pull; `kill` makes it the fatal shot, so fights end on cue
+    // (only if the shot actually landed: a miss is logged instead).
     *shoot(e, { kill = false } = {}) {
       demo.shots.push({ seg: i, at: local, lag: demo.lagNow });
+      const hp = e?.health;
       game.input.mouseDown = true;
       game.input.mousePressed = true;
       yield;
       game.input.mouseDown = false;
-      if (kill && e && !e.dead) e.takeDamage(9999, null, null, game.weapons.current);
+      const hit = e && (e.dead || e.health < hp);
+      if (e && !hit) demo.log(`shot missed the ${e.type}`);
+      if (kill && hit && !e.dead) e.takeDamage(9999, null, null, game.weapons.current);
       yield;
     },
     // Walks a nav-grid path to `target` with eased stick input: slows to turn,
@@ -727,9 +826,7 @@ function installDirector(segments, fps) {
         fade.style.opacity = 0;
         showCard(0);
       }
-      if (game.levels.current?.id === 'heart' || !document.querySelector('#boss').classList.contains('hidden')) {
-        throw new Error('spoiler guard: the final boss is on screen');
-      }
+      if (game.flags.has('escape') || game.flags.has('killed:mother')) throw new Error('spoiler guard: past the final boss');
       if (cur.subtitles === false) game.hud.subEl.classList.remove('show');
       game.frame(DT, true);
       // Rendering would update world matrices; do it here so both passes match.
@@ -808,6 +905,32 @@ function installDirector(segments, fps) {
       let s = '';
       for (let k = 0; k < bytes.length; k += 0x8000) s += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
       return { audio: btoa(s), blip, marks, ends, lag, cost, shots: demo.shots, fired: demo.fired, report: demo.report };
+    },
+
+    // The music pass: one zone bed alone, at full level, for `seconds` in real
+    // time (no level is loaded, so nothing else sounds).
+    async recordBed(name, seconds) {
+      const a = game.audio;
+      a.init(game.listener);
+      a.setVolume(0.9);
+      const ctx = game.listener.context;
+      await ctx.resume();
+      const dest = ctx.createMediaStreamDestination();
+      game.listener.getInput().connect(dest);
+      const rec = new MediaRecorder(dest.stream, { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 160000 });
+      const chunks = [];
+      rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+      rec.start(250);
+      setZone(name, 0.1);
+      a.setZoneLevel(1, 0.05);
+      // The title screen sets its own zone once audio is up; hold this one.
+      a.setZone = a.setZoneLevel = () => {};
+      await new Promise((r) => realSetTimeout(r, seconds * 1000));
+      await new Promise((r) => ((rec.onstop = r), rec.stop()));
+      const bytes = new Uint8Array(await new Blob(chunks).arrayBuffer());
+      let s = '';
+      for (let k = 0; k < bytes.length; k += 0x8000) s += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
+      return btoa(s);
     },
   };
   // Every shot the game actually fires (the sync check uses these).
@@ -893,6 +1016,8 @@ async function recordAudio(cdp) {
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
 const outIdx = args.indexOf('--out');
+const bedIdx = args.indexOf('--bed');
+const bedName = bedIdx >= 0 ? args[bedIdx + 1] : BED;
 const OUT = resolve(ROOT, outIdx >= 0 ? args[outIdx + 1] : 'docs/demo/demo.mp4');
 const WORK = resolve(tmpdir(), 'tithe-demo');
 rmSync(WORK, { recursive: true, force: true });
@@ -932,6 +1057,20 @@ if (!silent) {
   const onsetMatch = /silence_end: ([\d.]+)/.exec(detect);
   if (!onsetMatch) throw new Error('calibration blip not found in the audio recording');
   const onset = +onsetMatch[1];
+  // The music bed, recorded on its own; its first seconds (the fade in) are skipped.
+  const BED_SKIP = 2;
+  console.log(`recording the ${bedName} bed (${Math.ceil(TOTAL + BED_SKIP + 1)} s in real time)…`);
+  const bedAudio = await withBrowser(async (cdp) => {
+    await openGame(cdp);
+    return evaluate(cdp, `demo.recordBed(${JSON.stringify(bedName)}, ${Math.ceil(TOTAL + BED_SKIP + 1)})`);
+  }, chrome);
+  const bedWebm = resolve(WORK, 'bed.webm');
+  const bedWav = resolve(WORK, 'bed.wav');
+  write(bedWebm, Buffer.from(bedAudio, 'base64'));
+  execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-i', bedWebm, '-ar', '48000', bedWav]);
+  // Beds are mixed far quieter in the game than a trailer wants; level it by loudness.
+  const vol = spawnSync(FFMPEG, ['-hide_banner', '-ss', String(BED_SKIP), '-i', bedWav, '-af', 'volumedetect', '-f', 'null', '-'], { encoding: 'utf8' }).stderr;
+  const bedGain = BED_DB - +/mean_volume: (-?[\d.]+) dB/.exec(vol)[1];
   if (rec.lag.s > 0.1) console.warn(`  note: the audio pass fell ${rec.lag.s.toFixed(2)} s behind real time (${rec.lag.where}); sound may lag there`);
   const key = (x) => `${SEGMENTS[x.seg].name} ${x.at.toFixed(2)}`;
   if (fired.map(key).join() !== rec.fired.map(key).join()) {
@@ -949,12 +1088,21 @@ if (!silent) {
   const parts = rec.marks.map((m, k) => {
     const from = onset + (m.at - rec.blip);
     // A few milliseconds of fade at each cut, just to avoid clicks.
-    const f = 0.015;
+    const f = 0.03;
     return `[1:a]atrim=start=${from.toFixed(4)}:duration=${m.seconds},asetpts=PTS-STARTPTS,apad=whole_dur=${m.seconds},afade=t=in:d=${f},afade=t=out:st=${(m.seconds - f).toFixed(3)}:d=${f}[a${k}]`;
   });
+  // The bed rises under the title card and fades with the game's sound on the end card.
+  const end = SEGMENTS[SEGMENTS.length - 1];
+  const endAt = starts[SEGMENTS.length - 1];
+  // Each clip's `bed` level, eased over BED_RAMP s from the cut.
+  const BED_RAMP = 0.4;
+  const lv = SEGMENTS.map((s) => s.bed ?? 1);
+  const env = lv.map((l, k) => (k ? `+${(l - lv[k - 1]).toFixed(3)}*clip((t-${starts[k].toFixed(3)})/${BED_RAMP},0,1)` : `${l}`)).join('');
+  const bed = `[2:a]atrim=start=${BED_SKIP}:duration=${TOTAL},asetpts=PTS-STARTPTS,volume=${bedGain.toFixed(1)}dB,volume='${env}':eval=frame,afade=t=in:d=1.5,afade=t=out:st=${(endAt + 1.5).toFixed(3)}:d=${(end.seconds - 1.8).toFixed(3)}[bed]`;
   audioFilter = [
     '-i', wav,
-    '-filter_complex', `${parts.join(';')};${rec.marks.map((_, k) => `[a${k}]`).join('')}concat=n=${rec.marks.length}:v=0:a=1,volume=0.8,alimiter=limit=0.89[aout]`,
+    '-i', bedWav,
+    '-filter_complex', `${parts.join(';')};${rec.marks.map((_, k) => `[a${k}]`).join('')}concat=n=${rec.marks.length}:v=0:a=1[fx];${bed};[fx][bed]amix=inputs=2:normalize=0:duration=first,volume=0.8,alimiter=limit=0.89[aout]`,
     '-map', '0:v', '-map', '[aout]', '-c:a', 'aac', '-b:a', '128k',
   ];
 }
