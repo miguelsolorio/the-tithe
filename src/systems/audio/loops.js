@@ -10,6 +10,8 @@ import { lullaby } from './sfx-lower.js';
 export function makeLoopHandle(engine, H, pos, gain, opts = {}) {
   const ctx = H.ctx;
   const bus = H.G(gain);
+  // One-shots played into it skip their own reverb send (H.out).
+  bus.loopBus = true;
   let panner = null;
   let head = bus;
   if (pos) {

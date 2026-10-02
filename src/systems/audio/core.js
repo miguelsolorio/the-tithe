@@ -228,13 +228,17 @@ export function createHelpers(engine) {
       head = p;
     }
     head.connect(dest);
-    const send = G(wet);
-    head.connect(send);
-    send.connect(dest === engine.worldBus ? engine.worldSend : engine.reverb);
+    // A loop's bus has its own send after its panner (loops.js); a send here
+    // would reach the reverb at full level from anywhere, unhushed.
+    const send = dest.loopBus ? null : G(wet);
+    if (send) {
+      head.connect(send);
+      send.connect(dest === engine.worldBus ? engine.worldSend : engine.reverb);
+    }
     setTimeout(() => {
       try { g.disconnect(); } catch {}
       try { head.disconnect(); } catch {}
-      try { send.disconnect(); } catch {}
+      try { send?.disconnect(); } catch {}
       engine._voiceCount = Math.max(0, engine._voiceCount - 1);
     }, (life + 4.5) * 1000);
     return g;
