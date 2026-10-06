@@ -111,8 +111,8 @@ export class EnemyManager {
           b.pos.x += (dx / d) * push;
           b.pos.z += (dz / d) * push;
           // Pushes must not shove anyone through a wall.
-          ph.resolveCircle(a.pos, a.cfg.radius, a.move.height, 0.5);
-          ph.resolveCircle(b.pos, b.cfg.radius, b.move.height, 0.5);
+          ph.resolveCircle(a.pos, a.cfg.radius, a.move.height, 0.5, a.move.ignore);
+          ph.resolveCircle(b.pos, b.cfg.radius, b.move.height, 0.5, b.move.ignore);
         }
       }
       if (['dormant'].includes(a.state)) continue;

@@ -214,9 +214,10 @@ export class Physics {
   }
 
   // Move a grounded circle mover by (dx, dz) with sub-steps, collision and
-  // ground snapping. state: { pos, vy, grounded, radius, height, stepHeight }.
-  // Returns the ground collider (or null). Solid colliders bumped this move
-  // end up in state.contacts.
+  // ground snapping. state: { pos, vy, grounded, radius, height, stepHeight,
+  // ignore? } (ignore: colliders it passes through, e.g. the field's wolves
+  // and its invisible wall). Returns the ground collider (or null). Solid
+  // colliders bumped this move end up in state.contacts.
   move(state, dx, dz, dt, gravity = 22) {
     const pos = state.pos;
     const contacts = state.contacts || (state.contacts = []);
@@ -227,7 +228,7 @@ export class Physics {
     for (let i = 0; i < steps; i++) {
       pos.x += dx / steps;
       pos.z += dz / steps;
-      this.resolveCircle(pos, state.radius, state.height, state.stepHeight, null, contacts);
+      this.resolveCircle(pos, state.radius, state.height, state.stepHeight, state.ignore || null, contacts);
       // Step up onto anything within step height.
       this.groundAt(pos.x, pos.z, pos.y + state.stepHeight, g);
       if (g.y > pos.y && state.grounded) pos.y = g.y;

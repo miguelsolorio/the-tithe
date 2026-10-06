@@ -84,7 +84,7 @@ function headGeo() {
   return merge([cran, snout, ...cheek]);
 }
 
-function teethRow(side, zs, lens, y, dirY) {
+export function teethRow(side, zs, lens, y, dirY) {
   const parts = [];
   zs.forEach((z, i) => {
     const len = lens[i];
@@ -209,11 +209,19 @@ const walkStride = (v) => clamp(0.6 + v * 0.4, 0.7, 1.6);
 const runStride = (v) => clamp(1.3 + v * 0.2, 1.8, 3.4);
 
 export function buildHound() {
-  const A = assets();
+  return buildQuadruped(assets(), { name: 'hound', skin: 'flesh', hackles: 'bone', horns: 'horn' });
+}
+
+// The rig, gaits and poses, shared with the wolf (wolf.js). A = the geometry
+// set (same names and spaces as assets() above). look = { name, skin and
+// hackles (material names), horns? (material for A.horns), ears? ({ x, y, z }
+// head-space base of A.earL; A.earR mirrors it; they pin back while it
+// hunts), eyeColor? and killGlow? (eye glow, and how hard in the kill-cam) }.
+export function buildQuadruped(A, look) {
   const M = instMats();
-  const flesh = M.get('flesh'), teeth = M.get('teeth'), horn = M.get('horn'), eye = M.get('eye');
+  const flesh = M.get(look.skin), teeth = M.get('teeth'), eye = M.get('eye');
   const root = new THREE.Group();
-  root.name = 'hound';
+  root.name = look.name;
   const body = pivot(root, 0, 0, 0, 'body');
   const spine = pivot(body, 0, 0.74, -0.15, 'spine');
   const hingeP = pivot(spine, 0, 0, 0, 'hingeP');
@@ -228,14 +236,19 @@ export function buildHound() {
   // Hackles: bone spines that lie low until it hunts.
   const hackT = pivot(thorax, 0, 0.135, 0, 'hacklesT');
   const hackP = pivot(pelvis, 0, 0.125, 0, 'hacklesP');
-  mesh(A.spinesT, M.get('bone'), hackT);
-  mesh(A.spinesP, M.get('bone'), hackP);
+  mesh(A.spinesT, M.get(look.hackles), hackT);
+  mesh(A.spinesP, M.get(look.hackles), hackP);
   mesh(A.neck, flesh, neck);
   mesh(A.head, flesh, head);
   mesh(A.teethU, teeth, head);
   mesh(A.eyes, eye, head);
-  mesh(A.horns, horn, head);
-  const eyes = glowEyes(head, [V(0.05, 0.028, 0.06), V(-0.05, 0.028, 0.06)], { r: 0.0105 });
+  if (look.horns) mesh(A.horns, M.get(look.horns), head);
+  const ears = look.ears ? [1, -1].map((side) => {
+    const node = pivot(head, side * look.ears.x, look.ears.y, look.ears.z, side > 0 ? 'earL' : 'earR');
+    mesh(side > 0 ? A.earL : A.earR, flesh, node);
+    return { node, side };
+  }) : [];
+  const eyes = glowEyes(head, [V(0.05, 0.028, 0.06), V(-0.05, 0.028, 0.06)], { r: 0.0105, color: look.eyeColor });
   mesh(A.jaw, flesh, jaw);
   mesh(A.teethL, teeth, jaw);
 
@@ -460,11 +473,17 @@ export function buildHound() {
     // snap up with them and stay up while it hunts.
     const hunting = ['notice', 'run', 'attack', 'hurt', 'kill'].includes(s.state);
     const dead = s.state === 'dead';
-    const g = dead ? 0 : s.state === 'notice' ? 0.6 + 0.9 * smooth(s.stateTime / 0.25) : s.state === 'kill' ? 1.5 : hunting ? 1 : 0.3;
+    const g = dead ? 0 : s.state === 'notice' ? 0.6 + 0.9 * smooth(s.stateTime / 0.25) : s.state === 'kill' ? look.killGlow ?? 1.5 : hunting ? 1 : 0.3;
     glow += (g - glow) * damp(dead ? 1.5 : 10, dt);
     eyes.set(glow * (0.85 + 0.15 * wobble(t * 11, seed + 9)));
     raise += ((dead ? 0.45 : hunting ? 1 : 0.3) - raise) * damp(s.state === 'notice' ? 14 : 4, dt);
     hackT.scale.y = hackP.scale.y = raise;
+    // Ears flick while it listens and lie flat back once it hunts.
+    const pin = dead ? 0.6 : clamp((raise - 0.3) / 0.7, 0, 1);
+    for (const e of ears) {
+      const flick = (1 - pin) * 0.25 * Math.max(0, wobble(t * 0.9, seed + 12 + e.side) - 0.4);
+      e.node.rotation.set(-1.15 * pin - flick, 0, -e.side * (0.15 + 0.4 * pin));
+    }
     M.step(dt);
   }
 

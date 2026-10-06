@@ -4,7 +4,7 @@ import { CONFIG } from '../config.js';
 
 // ?debug: FPS counter and console helpers on window.game:
 //   game.teleport(level, spawn?)  level = id ('cistern'), index (1-7) or name
-//   game.spawn(type, distance?)   type = acolyte | hound | drowned | lamprey | skinless | wallMaw | mother
+//   game.spawn(type, distance?)   type = acolyte | hound | wolf | drowned | lamprey | skinless | wallMaw | mother
 //   game.give(item)               knife | revolver | shotgun | phone | fuse | crowbar | valve | ammo | shells | bandage | health | all
 //   game.god(on?)                 toggle god mode (no damage)
 //   game.kill()                   kill every enemy in the level

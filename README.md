@@ -74,7 +74,7 @@ On phones and tablets (or with `?touch`), on-screen controls take over. Play wit
 
 ## The way down
 
-1. **The field at dusk.** Follow the ringing phone. The sky darkens as time passes and as you near the cabin.
+1. **The field at dusk.** Follow the ringing phone. The sky darkens as time passes and as you near the cabin. Wander to the edge of the field and the wolves come out of the trees.
 2. **Ground floor.** Find the knife in the blood chapel hidden behind a library bookshelf; it cuts the ropes on the grand stairs.
 3. **Upstairs and attic.** The revolver and the fuse. The fuse powers the basement door in the kitchen.
 4. **Flooded basement.** Wading slows you down. The crowbar opens the grate to the cisterns.
@@ -91,7 +91,7 @@ Add `?debug` to the URL (http://localhost:5199/?debug). It shows an FPS counter 
 | Command | What it does |
 | --- | --- |
 | `game.teleport(level, spawn?)` | Jump to a level by id (`'field'`, `'ground'`, `'upstairs'`, `'basement'`, `'cistern'`, `'caves'`, `'heart'`), number 1–7 or name |
-| `game.spawn(type, distance?)` | Spawn `acolyte`, `hound`, `drowned`, `lamprey`, `skinless`, `wallMaw` or `mother` in front of you |
+| `game.spawn(type, distance?)` | Spawn `acolyte`, `hound`, `wolf`, `drowned`, `lamprey`, `skinless`, `wallMaw` or `mother` in front of you |
 | `game.give(item)` | `knife`, `revolver`, `shotgun`, `phone`, `fuse`, `crowbar`, `valve`, `ammo`, `shells`, `bandage` (+1 carried), `health` (full heal) or `all` |
 | `game.god(on?)` | Toggle god mode (no damage) |
 | `game.kill()` | Kill every enemy in the level |
@@ -109,6 +109,7 @@ Choices made where the brief left room:
 - **Key items open the next area**: phone → cabin door, knife → stair ropes, fuse → basement door, crowbar → cistern grate, valve wheel → sluice gate, shotgun → the sphincter to the heart.
 - **Checkpoints** on entering each area (flags, inventory, health; at least half health), also kept in `localStorage` for **Continue**.
 - **The knife never runs out**, so every area can be finished without ammo. The ritual knife does double damage to the Mother Below: she was bound with it.
+- **The field's edge is guarded.** Walk out toward the treeline and two wolves (three after dark) run out of the trees and bite until you turn back toward the cabin; then they stand at the treeline and watch you go. You have no weapon yet, so the only answer is to leave.
 - **Flashlight** has no battery; darkness is the challenge, and enemies see you from farther away when it is on.
 - **Mouse sensitivity and volume** are in the pause menu.
 - **HUD**: health bar at the bottom centre, the weapon and ammo just above it, key items top left.

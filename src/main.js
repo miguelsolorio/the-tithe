@@ -58,6 +58,7 @@ const $ = (s) => document.querySelector(s);
 const DEATH_TEXT = {
   acolyte: 'The acolytes lay you on the altar beside the others.',
   hound: 'The hound drags you down into the dark.',
+  wolf: 'The wolves drag you into the trees.',
   drowned: 'Cold hands hold you under until you stop struggling.',
   lamprey: 'It fastens on and does not let go.',
   skinless: 'It screams the whole time.',

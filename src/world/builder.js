@@ -360,7 +360,7 @@ export class LevelBuilder {
     return this.game.pickups.create(this, spec);
   }
 
-  // Enemy: type = 'acolyte' | 'hound' | 'drowned' | 'lamprey' | 'skinless' | 'wallMaw' | 'mother'.
+  // Enemy: type = 'acolyte' | 'hound' | 'wolf' | 'drowned' | 'lamprey' | 'skinless' | 'wallMaw' | 'mother'.
   // opts: { id, yaw, idle: 'stand' | 'pray' | 'wander' | 'patrol' | 'dormant' | 'seated', patrol: [[x,z],...], wakeRadius, ... }
   enemy(type, pos, opts = {}) {
     const spec = { type, pos: v3(pos), ...opts };

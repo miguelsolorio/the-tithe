@@ -561,9 +561,9 @@ function makeModel(type, opts) {
 
 function standIn(type) {
   const root = new THREE.Group();
-  const col = { acolyte: 0x4a0a0e, hound: 0x7a1016, drowned: 0x5a6a68, lamprey: 0x2a3a3a, skinless: 0x8a2020, wallMaw: 0x6a0a10, mother: 0x202020, sister: 0xc0b8b0 }[type] ?? 0x888888;
+  const col = { acolyte: 0x4a0a0e, hound: 0x7a1016, drowned: 0x5a6a68, lamprey: 0x2a3a3a, skinless: 0x8a2020, wallMaw: 0x6a0a10, mother: 0x202020, sister: 0xc0b8b0, wolf: 0x3a3632 }[type] ?? 0x888888;
   const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.6 });
-  const h = type === 'hound' ? 0.9 : type === 'lamprey' ? 0.5 : type === 'mother' ? 6.5 : 1.8;
+  const h = type === 'hound' || type === 'wolf' ? 0.9 : type === 'lamprey' ? 0.5 : type === 'mother' ? 6.5 : 1.8;
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(h * 0.18, h * 0.6, 4, 8), mat);
   body.position.y = h * 0.5;
   body.castShadow = true;

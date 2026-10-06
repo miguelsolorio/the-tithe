@@ -69,7 +69,7 @@ scene.add(floor);
 // Slot layout (x, y, z) per creature.
 const SLOTS = {
   acolyte: [0, 0, 0], hound: [5, 0, 0], drowned: [10, 0, 0], lamprey: [15, 0, 0],
-  skinless: [20, 0, 0], sister: [25, 0, 0], wallMaw: [30, 1.35, 0], mother: [48, 0, -4],
+  skinless: [20, 0, 0], sister: [25, 0, 0], wallMaw: [30, 1.35, 0], mother: [48, 0, -4], wolf: [36, 0, 0],
 };
 const WATER = { drowned: 0.9, lamprey: 0.5, mother: 0.02 };
 const DURATION_KEY = { attack: 'attack', notice: 'notice', hurt: 'hurt', dead: 'death', scream: 'scream' };

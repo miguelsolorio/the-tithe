@@ -159,6 +159,102 @@ export class Hound extends Enemy {
   }
 }
 
+// The field's wolves (levels/field/pack.js). Walk to the edge of the field
+// and the pack runs out of the treeline at you (emerge), bites until you turn
+// back toward the cabin, then lopes back to the trees, stands there watching
+// you go (watch) and is gone. spec.passThrough lists colliders it runs
+// through: the field's invisible wall. Spawned on its own (debug) it hunts
+// like a hound.
+export class Wolf extends Enemy {
+  constructor(game, level, spec) {
+    super(game, level, spec, {
+      health: 45,
+      walkSpeed: 1.5,
+      runSpeed: 5.8,
+      damage: 9,
+      attackRange: 1.9,
+      attackReach: 2.4,
+      attackCooldown: 0.7,
+      sightRange: 30,
+      hearRange: 14,
+      fov: -0.5,
+      turnRate: 10,
+      staggerDamage: 20,
+      radius: 0.4,
+      attackSound: 'houndBite',
+      steps: { sound: 'pawStep', stride: 0.5, runStride: 0.95, walkGain: 0.25, runGain: 0.7 },
+      killCam: true,
+      killSound: 'wolfKill',
+      killGain: 1.3,
+    });
+    this.move.ignore = spec.passThrough || null;
+    this.goal = new THREE.Vector3();
+    this.away = new THREE.Vector3();
+    this.watchFor = 0;
+    this.gone = false;
+    this.snarlT = Math.random() * 1.5;
+  }
+
+  // Out of the trees at a run, toward goal (just inside the wall); then it hunts.
+  emerge(goal) {
+    this.goal.copy(goal);
+    this.setState('emerge');
+  }
+
+  // Back to the trees at a lope; there it turns and watches you for `watch`
+  // seconds, then goes on to `away` (deeper in) and is `gone`.
+  retreat(goal, watch = 0, away = goal) {
+    if (this.dead || this.state === 'kill') return;
+    this.goal.copy(goal);
+    this.away.copy(away);
+    this.watchFor = watch;
+    this.setState('retreat');
+  }
+
+  onNotice() {
+    this.game.audio.play('wolfGrowl', { pos: this.eye().clone(), gain: 2 });
+  }
+
+  onHitPlayer() {
+    this.game.audio.play('squelch', { gain: 0.5 });
+  }
+
+  thinkExtra(dt, d) {
+    const left = Math.hypot(this.goal.x - this.pos.x, this.goal.z - this.pos.z);
+    if (this.state === 'emerge') {
+      this.moveToward(this.goal, this.cfg.runSpeed, dt);
+      if (left < 1 || d < 7 || this.stateTime > 6) this.setState('chase');
+    } else if (this.state === 'retreat') {
+      this.moveToward(this.goal, this.cfg.runSpeed * 0.7, dt);
+      if (left < 1 || this.stateTime > 12) {
+        if (this.watchFor > 0) this.setState('watch');
+        else this.gone = true;
+      }
+    } else if (this.state === 'watch') {
+      this.speed = 0;
+      this.face(this.game.player.position, dt, 0.5);
+      if (this.stateTime > this.watchFor) this.retreat(this.away);
+    }
+  }
+
+  think(dt) {
+    super.think(dt);
+    if (this.state === 'chase' || this.state === 'emerge') {
+      this.snarlT -= dt;
+      if (this.snarlT <= 0) {
+        this.snarlT = 2 + Math.random() * 2.5;
+        this.game.audio.play('snarl', { pos: this.eye().clone(), gain: 0.7 });
+      }
+    }
+  }
+
+  animate(dt) {
+    if (!['emerge', 'retreat', 'watch'].includes(this.state)) return super.animate(dt);
+    const st = this.speed > this.cfg.walkSpeed * 1.25 ? 'run' : this.speed > 0.15 ? 'walk' : 'idle';
+    this.model.animate(dt, this.game.time, { state: st, stateTime: this.stateTime, speed: this.speed, attackT: 0 });
+  }
+}
+
 // Flayed, starved humanoids. Out in the caves they hang back in the dark and
 // call for help in your sister's voice; come close, or put your light on one,
 // and the voice breaks into a scream and it runs at you. The ones the Mother
@@ -799,6 +895,7 @@ export class WallMaw extends Enemy {
 export const ENEMY_TYPES = {
   acolyte: Acolyte,
   hound: Hound,
+  wolf: Wolf,
   skinless: Skinless,
   drowned: Drowned,
   lamprey: Lamprey,
