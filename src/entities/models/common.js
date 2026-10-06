@@ -35,6 +35,7 @@ const DEF = {
   clothWet: { map: 'cloth', bump: 'cloth', bumpScale: 1.0, roughness: 0.5, side: THREE.DoubleSide },
   hair: { map: 'hair', bump: 'hair', bumpScale: 1.6, roughness: 0.3 },
   hairDS: { map: 'hair', bump: 'hair', bumpScale: 1.6, roughness: 0.3, side: THREE.DoubleSide },
+  fur: { map: 'fur', bump: 'fur', bumpScale: 1.8, roughness: 0.88 },
   iron: { map: 'rust', bump: 'rust', bumpScale: 2.5, roughness: 0.8, metalness: 0.45 },
   blade: { color: 0x9a948c, roughness: 0.28, metalness: 0.85 },
   wax: { color: 0xd4c6a4, roughness: 0.55 },

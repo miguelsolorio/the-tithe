@@ -22,7 +22,7 @@ const ONE_SHOTS = [
   // sfx-lower.js
   'drownedWake', 'drownedCough', 'wadeStep', 'drownedKill', 'drownedUnder', 'ceilingKnock',
   'lampreyDrop', 'lampreyKill', 'mimicCall', 'mimicBreak', 'mimicKill', 'fleshStep',
-  'mawInhale', 'mawExhale', 'mawGasp', 'mawBite', 'mawKill', 'motherGrab', 'wolfGrowl', 'bipedSteps',
+  'mawInhale', 'mawExhale', 'mawGasp', 'mawBite', 'mawKill', 'motherGrab', 'wolfGrowl', 'wolfKill', 'bipedSteps',
 ];
 const LOOP_NAMES = ['motherHum', 'bulbBuzz', 'candle', 'chantLoop', 'waterFlow', 'dripping', 'fleshBreath', 'mawBreath', 'phoneRing', 'floodRush'];
 const ZONES = ['field', 'liturgy', 'undertow', 'viscera', 'boss', 'escape', 'dawn', null];

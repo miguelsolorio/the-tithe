@@ -5,6 +5,7 @@ import { getMaterial, solid } from '../world/materials.js';
 import { buildCabinExterior } from './field/cabin.js';
 import { buildNature, SCARECROW, FENCES } from './field/nature.js';
 import { buildWolves } from './field/wolves.js';
+import { buildPack } from './field/pack.js';
 import { groundMist, dustMotes } from '../world/ambience/mist.js';
 import { crows } from '../world/ambience/critters.js';
 import { buildTreeLine } from './field/horizon.js';
@@ -87,30 +88,31 @@ export default {
     rib.computeVertexNormals();
     L.batcher.add(rib, getMaterial('dirt'), { cast: false });
 
-    // Invisible boundary.
+    // Invisible boundary. You can see and shoot through it, and the wolves
+    // run through it (field/pack.js); at dusk they're what keeps you in.
     const B = 88;
-    for (const [a, b] of [
+    const walls = [
       [[-B, -5, -B - 1], [B, 20, -B]],
       [[-B, -5, B], [B, 20, B + 1]],
       [[-B - 1, -5, -B], [-B, 20, B]],
       [[B, -5, -B], [B + 1, 20, B]],
-    ])
-      L.collider(a, b, { walkable: false });
-    L.trigger({
-      min: [-B, -10, -B],
-      max: [B, 30, B],
-      onExit: () => {},
-      onStay: (g, dt, tr) => {
-        const p = g.player.position;
-        if (Math.max(Math.abs(p.x), Math.abs(p.z)) > B - 6) {
-          tr._t = (tr._t ?? 0) - dt;
-          if (tr._t <= 0) {
-            tr._t = 6;
-            g.hud.say(dawn ? 'Away from the house. Keep going.' : 'Her phone pinged near the cabin.', 2.5);
+    ].map(([a, b]) => L.collider(a, b, { walkable: false, seeThrough: true, shootable: false }));
+    if (dawn) {
+      L.trigger({
+        min: [-B, -10, -B],
+        max: [B, 30, B],
+        onStay: (g, dt, tr) => {
+          const p = g.player.position;
+          if (Math.max(Math.abs(p.x), Math.abs(p.z)) > B - 6) {
+            tr._t = (tr._t ?? 0) - dt;
+            if (tr._t <= 0) {
+              tr._t = 6;
+              g.hud.say('Away from the house. Keep going.', 2.5);
+            }
           }
-        }
-      },
-    });
+        },
+      });
+    }
 
     // ---------- Sky ----------
     const sky = makeSky(dawn);
@@ -131,7 +133,7 @@ export default {
       // Your car at the end of the track.
       buildCar(L, START[0] + 3.2, START[1] + 3, heightAt);
       L.spawn('start', [START[0], heightAt(START[0], START[1]), START[1]], Math.atan2(START[0] - CABIN.x, START[1] - CABIN.z) - 0.1);
-      buildDusk(L, game, sky, grass);
+      buildDusk(L, game, sky, grass, walls);
     } else {
       L.spawn('fromHouse', [CABIN.x + 0.3, 0.3, DOOR_Z + 2.4], 0);
       L.spawn('start', [CABIN.x + 0.3, 0.3, DOOR_Z + 2.4], 0);
@@ -143,7 +145,7 @@ export default {
 };
 
 // ---------- Dusk: tutorial, darkening, phone, door ----------
-function buildDusk(L, game, sky, grass) {
+function buildDusk(L, game, sky, grass, walls) {
   let elapsed = 0;
   let dark = 0;
   let hinted = { move: false, sprint: false, light: false };
@@ -183,6 +185,7 @@ function buildDusk(L, game, sky, grass) {
   }
 
   buildWolves(L, { heightAt, getDark: () => dark });
+  buildPack(L, { heightAt, getDark: () => dark, walls });
   // Mist rises off the field as the light goes: warm haze at dusk, cold grey at night.
   const mist = groundMist(L, { color: 0x6a5040, opacity: 0.22, count: 60, radius: 22, size: [4, 8], height: [0.1, 1.1] });
   const mistDusk = new THREE.Color(0x6a5040);

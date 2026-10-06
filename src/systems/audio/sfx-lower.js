@@ -1,9 +1,9 @@
 // Encounter sounds for the creatures below the ground floor: the drowned,
 // the hanging lamprey, the mimic skinless, the breathing wall maw, the
-// Mother's lullaby and the wolf that stands up. Same (H, dest, pos, gain)
+// Mother's lullaby, the field's wolves and the wolf that stands up. Same (H, dest, pos, gain)
 // signature as sfx-depths.js; a few take one extra argument (a duration),
 // passed through audio.play(name, { arg }).
-import { scream, crack, snarl } from './sfx-depths.js';
+import { scream, crack, snarl, jawSnap } from './sfx-depths.js';
 
 // Seconds from now until t, so H.out() keeps a delayed voice alive long enough.
 const wait = (H, t) => Math.max(0, t - H.now());
@@ -375,6 +375,15 @@ export function wolfGrowl(H, dest, pos, gain = 1) {
   snarl(H, dest, pos, 0.8 * gain, H.now());
 }
 
+// A wolf on you: a snarl that runs into snapping, worrying bites.
+export function wolfKill(H, dest, pos, gain = 1) {
+  const t = H.now();
+  snarl(H, dest, pos, 1.1 * gain, t);
+  jawSnap(H, dest, pos, 1.2 * gain, t + 0.5);
+  snarl(H, dest, pos, 0.8 * gain, t + 0.65);
+  jawSnap(H, dest, pos, gain, t + 0.95);
+}
+
 // Six heavy steps through the grass, on two legs, walking away.
 export function bipedSteps(H, dest, pos, gain = 1) {
   const t = H.now();
@@ -403,5 +412,6 @@ export const LOWER_SFX = {
   mawKill,
   motherGrab,
   wolfGrowl,
+  wolfKill,
   bipedSteps,
 };

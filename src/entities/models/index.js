@@ -6,6 +6,7 @@ import { buildSkinless } from './skinless.js';
 import { buildWallMaw } from './wallMaw.js';
 import { buildMother } from './mother.js';
 import { buildSister } from './sister.js';
+import { buildWolf } from './wolf.js';
 
 // Creature registry. buildCreature(type, opts) returns
 // { root, height, radius, hitSpheres, lights, timings, animate, flash, dispose }
@@ -19,6 +20,7 @@ const BUILDERS = {
   wallMaw: buildWallMaw,
   mother: buildMother,
   sister: buildSister,
+  wolf: buildWolf,
 };
 
 export const CREATURE_TYPES = Object.keys(BUILDERS);

@@ -113,6 +113,14 @@ const GEN = {
     const L = 0.35 + 0.8 * s ** 1.6 * (0.6 + 0.4 * clump);
     o[0] = o[1] = o[2] = L;
   }),
+  // Short coarse fur lying along V, matted into locks with dark partings.
+  fur: () => canvasTex(512, (u, v, o) => {
+    const s = tfbm(u, v, 160, 10, 2, 81);
+    const lock = tfbm(u, v, 22, 4, 3, 82);
+    const part = ss(0.8, 0.97, ridge(lock));
+    const L = 0.62 + 0.42 * (s - 0.5) - 0.28 * part + 0.14 * (lock - 0.5) + 0.1 * (tfbm(u, v, 4, 2, 2, 83) - 0.5);
+    o[0] = L; o[1] = L * 0.98; o[2] = L * 0.95;
+  }),
   // Rusted iron (coloured).
   rust: () => canvasTex(256, (u, v, o) => {
     const n = tfbm(u, v, 8, 8, 5, 71);

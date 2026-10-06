@@ -30,7 +30,7 @@ const PLAYER_SFX = new Set(['ricochet', 'knifeHit', 'knifeWall', 'bulletHit', 'd
 // chants quiet without muffling an encounter. Still positional, with falloff.
 const CREATURE_SFX = new Set([
   'acolyteScream', 'acolyteWhisper', 'acolyteStep', 'crawlStep', 'boneCrack',
-  'snarl', 'houndBite', 'houndNotice', 'pawStep',
+  'snarl', 'houndBite', 'houndNotice', 'pawStep', 'wolfGrowl',
   'drownedWake', 'drownedCough', 'wadeStep', 'gurgle', 'lamprey', 'lampreyDrop', 'ceilingKnock',
   'skinlessScream', 'mimicCall', 'mimicBreak', 'fleshStep', 'mawInhale', 'mawExhale', 'mawGasp', 'mawBite',
 ]);

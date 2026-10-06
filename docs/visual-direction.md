@@ -61,7 +61,7 @@ Shared helpers in `src/world/ambience/`; each level calls `dressLevel(L, P, {...
 - **Cobwebs** — diagonal sheets across room corners, loose strands and the odd small spider; in every house, basement and cistern room, thick in the attic rafters. None in the flesh.
 - **Floor debris** — loose pages, fallen plaster, broken glass and bottles, rags, small bones, candle stubs, dropped books.
 - **Critters (harmless, never gameplay)** — rats that bolt into the walls from the light; crows on the scarecrow and fences that fly off when approached and leave at nightfall; moths around bulbs and lanterns; flies over the dead, the drowned feast and the pods.
-- **Wolves** — never seen: howls from the treeline, and at night pairs of eyes low in the dark that go out when the flashlight finds them or you walk toward them. After dark one pair sits higher than the rest and rises above your head when your light comes near; now and then something tall stands at the edge of the beam for an instant. Phones get half the mist, motes and critters.
+- **Wolves** — unseen unless you walk to the edge of the field (see Enemies): howls from the treeline, and at night pairs of eyes low in the dark that go out when the flashlight finds them or you walk toward them. After dark one pair sits higher than the rest and rises above your head when your light comes near; now and then something tall stands at the edge of the beam for an instant. Phones get half the mist, motes and critters.
 
 ## Enemies
 
@@ -69,6 +69,7 @@ Shared helpers in `src/world/ambience/`; each level calls `dressLevel(L, P, {...
 |---|---|---|
 | Acolyte | Upper floors | Human cultist in an antler skull mask with a ritual knife and candle; arms a little too long. Once it hunts you it folds over backward and crawls at you upside down, candle in its teeth, ember eyes |
 | Horned hound | Ground floor and below | Skinless dog with ram horns and ember eyes; bone spines stand up along its back when it hunts; fast, runs you down |
+| Wolf | The edge of the field | Big, lean grey wolf with a dark saddle, a heavy ruff and gold eyes; its hackles rise and its ears pin back when it hunts. Two or three break from the treeline when you walk to the edge, bite until you turn back, then stand at the treeline watching you go |
 | The drowned | Basement | Bloated, slow; stands up out of the water in jerks with water running from its slack jaw, and its milky eyes shine back in your flashlight |
 | Lamprey | Basement, cistern | Eel body on human hands, circular toothed mouth; hangs from the ceiling and drops on you, and hunts hand over hand along the ceiling |
 | Skinless | Flesh caves | Flayed humanoid; hangs back in the dark calling for help in your sister's voice, then the voice breaks into a scream and it sprints at you |
